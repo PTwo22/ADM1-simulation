@@ -4,6 +4,16 @@
 ## Instructions
 [TBA]
 
+Optional: Install Better Comments extension for VSCode for better reading of codebase
+```bash
+Name: Better Comments
+Id: aaron-bond.better-comments
+Description: Improve your code commenting by annotating with alert, informational, TODOs, and more!
+Version: 3.0.2
+Publisher: Aaron Bond
+VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-bond.better-comments
+```
+
 ## Structure
 ```
 /ADM1-simulation
