@@ -50,11 +50,54 @@ def calculate_baseline_methane_yield():
     """baseline methane yield with biodegradability"""
     pass
 
+# * ================================================
+# * D. Fungal pretreatment severity
+# * ================================================
 
+def calculate_enzyme_dose_response():
+    pass
 
-# def fungal_pretreatment_severity_index():
-#     # df = pd.read_csv('data/fungal_pretreatment_data.csv')
-#     pass
+def calculate_temperature_response():
+    pass
 
-# def fw_input_vector():
-#     pass
+def calculate_ph_response():
+    pass
+
+def calculate_time_response():
+    pass
+
+def calculate_fungal_pretreatment_effectiveness():
+    """Fungal pretreatment effectiveness for each organic-matter class"""
+    pass
+
+def calculate_fungal_pretreatment_severity_index():
+    """FPSI"""
+    pass
+
+# * ================================================
+# * E. Pretreatment effect on substrate solubilisation
+# * ================================================
+
+def calculate_scod_increase():
+    pass
+
+def calculate_estimated_scod():
+    """SCOD after pretreatment"""
+    pass
+
+def calculate_soluble_sugar_release():
+    pass
+
+def calculate_fan_tan_change():
+    pass
+
+# * ================================================
+# * F. Hydrolysis and lag-phase modification
+# * ================================================
+
+def calculate_modified_hydrolysis_rate():
+    pass
+
+def calculate_lag_phase_reduction():
+    pass
+
