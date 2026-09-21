@@ -1,6 +1,9 @@
 # ADM1 Simulation
 **Project: Waste-to-Energy Simulation: Biogas Production from Food Waste Using Python**
 
+feed composition → fungal pretreatment → solubilisation/hydrolysis → methane → energy →
+risk
+
 ## Instructions
 [TBA]
 
@@ -15,6 +18,7 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 ```
 
 ## Structure
+![High level diagra](high-level-diagram.png)
 ```
 /ADM1-simulation
 ├── AD/
