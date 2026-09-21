@@ -5,7 +5,13 @@ feed composition → fungal pretreatment → solubilisation/hydrolysis → metha
 risk
 
 ## Instructions
-[TBA]
+1. Install all necessary dependencies
+```bash
+# Windows instructions
+python -m venv env
+.\env\Scripts\activate
+pip install -r requirements.txt
+```
 
 Optional: Install Better Comments extension for VSCode for better reading of codebase
 ```bash
