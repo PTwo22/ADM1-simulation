@@ -1,0 +1,24 @@
+variable,parameter,baseline_value,unit,status,source_basis
+f_TS,food_waste_total_solids,0.2,fraction wet basis,ready,He et al. (2024)
+f_VS_TS,volatile_solids_to_total_solids,0.9,fraction of TS,ready,He et al. (2024)
+f_carb,carbohydrate_fraction,0.5,fraction of VS,ready,Supervisor baseline; literature-supported
+f_protein,protein_fraction,0.25,fraction of VS,ready,Supervisor baseline; literature-supported
+f_lipid,lipid_fraction,0.2,fraction of VS,ready,Supervisor baseline; literature-supported
+f_inert,inert_fraction,0.05,fraction of VS,ready,Supervisor baseline
+M_wet,wet_mass_food_waste,1.0,kg wet FW,model_basis,Chosen modelling basis
+COD,total_COD,197.0,kg COD/m3,ready,Hegde & Trabold (2019)
+C_N,carbon_nitrogen_ratio,25.0,ratio,ready,Pilarska et al. (2023); Zhang & Sun (2014)
+BMP_carb,carbohydrate_methane_potential,0.415,Nm3 CH4/kg VS,ready,Batstone et al. (2002); Raposo et al. (2012)
+BMP_protein,protein_methane_potential,0.496,Nm3 CH4/kg VS,ready,Batstone et al. (2002); Raposo et al. (2012)
+BMP_lipid,lipid_methane_potential,1.014,Nm3 CH4/kg VS,ready,Batstone et al. (2002); Raposo et al. (2012)
+BMP_FW,mixed_food_waste_BMP,0.5,Nm3 CH4/kg VS,validation,Literature screening baseline
+r_SCG,SCG_screening_ratio,0.04,fraction of FW VS,ready,Kim et al. (2024)
+f_SCG_carb,SCG_carbohydrate_fraction,0.42,fraction of SCG basis,ready,Supervisor baseline
+f_SCG_protein,SCG_protein_fraction,0.16,fraction of SCG basis,ready,Supervisor baseline
+f_SCG_lipid,SCG_lipid_fraction,0.22,fraction of SCG basis,ready,Supervisor baseline
+f_SCG_inert,SCG_inert_fraction,0.2,fraction of SCG basis,ready,Supervisor baseline
+T_AD,AD_temperature,35.0,degC,ready,Literature baseline
+pH_AD,AD_pH,7.2,pH,ready,Literature baseline
+OLR,organic_loading_rate,2.0,kg VS/m3/d,ready,Literature baseline
+HRT,hydraulic_retention_time,20.0,d,ready,Paudel et al. (2017)
+P_CH4_expected,expected_raw_biogas_methane_fraction,0.6,fraction CH4,validation,Expected range 0.50-0.70
