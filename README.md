@@ -1,57 +1,41 @@
 # ADM1 Simulation
 
-**Project:** Waste-to-Energy Simulation: Biogas Production from Food Waste Using Python
+Python model for estimating biogas production from food waste and spent coffee
+grounds (SCG).
 
-This repository contains the Phase 1 screening model for food-waste and spent
-coffee-ground digestion with fungal pretreatment. The current executable model
-compares:
+## What it currently does
+
+The model compares:
 
 - **A — No pretreatment**
 - **B — Commercial fungal-enzyme pretreatment**
 
-Scenarios for in-situ solid-state fermentation, fungal consortia and hybrid
-biological/chemical treatment require additional process-specific kinetics and
-are not represented by the commercial-enzyme model.
+It calculates:
 
-## Current model scope
+- feedstock TS and VS;
+- fungal pretreatment effectiveness (FPSI);
+- methane yield and production rate;
+- methane energy;
+- VS mass balance.
 
-The code implements three collaborating model objects:
+This is a **Phase 1 screening model**, not the complete ADM1 simulation.
+Scenarios C–E, dynamic ADM1 reactions, pH, VFA, ammonia, costs and optimisation
+still need to be added.
 
-1. `Feedstock` — validates the food-waste/SCG composition and calculates TS,
-   VS, component masses and theoretical BMP.
-2. `Pretreatment` — converts enzyme dose, temperature, pH and time into
-   substrate-specific effectiveness values and an aggregate FPSI.
-3. `Digester` — applies first-order hydrolysis and a steady-state CSTR
-   screening calculation to estimate methane yield, methane rate and energy.
+## Main files
 
-The CSTR conversion used for each component is:
-
-```text
-conversion_i = k_i * HRT / (1 + k_i * HRT)
-```
-
-The realised methane yield is:
-
-```text
-Y_CH4 = sum(f_i * BMP_i * B_i * conversion_i)
-```
-
-This is an **ADM1-inspired screening model**, not yet the complete IWA ADM1.
-A full ADM1 implementation will require soluble and particulate state vectors,
-stoichiometric process rates, inhibition, acid-base chemistry, gas transfer and
-dynamic mass balances.
+- `main.py` — runs Scenarios A and B.
+- `AD/feedstock.py` — calculates feedstock composition.
+- `AD/digester.py` — calculates methane and energy.
+- `pretreatment/pretreatment.py` — calculates fungal pretreatment effects.
+- `data/config.py` — contains the input values used by the model.
+- `tests/test_model.py` — contains the automated tests.
 
 ## Run the model
-
-From the repository root:
 
 ```bash
 python3 main.py
 ```
-
-The program prints the methane yield, volumetric methane rate, improvement over
-the untreated control, methane energy and VS mass-balance residual for both
-implemented scenarios.
 
 ## Run the tests
 
@@ -59,38 +43,14 @@ implemented scenarios.
 python3 -m unittest discover -s tests -v
 ```
 
-The tests cover input validation, SCG ratio conversion, solids calculations,
-theoretical BMP, FPSI, CSTR output bounds, energy units and mass balance.
-
-## Parameter status
-
-The current values in `data/config.py` come from the supplied Phase 1 datasets.
-Several fungal-response, solubilisation, hydrolysis and biodegradability values
-are provisional. They must be evaluated through sensitivity analysis and
-calibrated against compatible experimental data before predictive use.
-
-The value `r_scg_to_fw = 0.04` is a ratio of SCG VS to food-waste VS. The
-`Feedstock` class converts it to the corresponding fraction of total mixture VS
-before composition mixing.
-
-## Structure
+Successful tests finish with:
 
 ```text
-ADM1-simulation/
-├── AD/
-│   ├── digester.py
-│   ├── feedstock.py
-│   └── results.py
-├── data/
-│   ├── config.py
-│   ├── fungal_pretreatment_inputs_updated.csv
-│   └── fw_adm1_inputs_updated.csv
-├── notebook/
-├── pretreatment/
-│   └── pretreatment.py
-├── tests/
-│   └── test_model.py
-├── main.py
-├── README.md
-└── requirements.txt
+Ran 11 tests
+OK
 ```
+
+## Important note
+
+The parameters are initial values taken from the supplied CSV datasets. Some
+values are provisional and will need sensitivity analysis and calibration.
