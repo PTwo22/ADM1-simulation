@@ -31,7 +31,7 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 
 - **Inputs**:
 
-- **Output**:
+- **Outputs**:
 
 #### Pretreatment
 - **Description**: Translates physical operational conditions (temperature, pH, reaction time, and enzyme dosage) into a representation of the effectiveness of the degraded waste. Computes 4 specific response factors for each organic matter class.
@@ -42,11 +42,11 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 
 
 #### Digester
-- **Description**:
+- **Description**: The main simulation for the CSTR (Continuous Stirred Tank Reactor) to do the AD process where the ```Feedstock``` class' physical mass is combined with the modifications from the Pretreatment class to calculate methane yield, kinetic shifts, and energy recovery.
 
 - **Inputs**:
 
-- **Output**:
+- **Outputs**: methane yield, kinetic shifts, and energy recovery
 
 
 ```

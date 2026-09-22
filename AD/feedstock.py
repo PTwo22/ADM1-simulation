@@ -8,6 +8,7 @@ import os
 """
 Formulas presented in Feedstock class: 1, 2, 3, 4, 6, 7
 """
+
 class Feedstock:
     """
     Defines what and how much of each feedstock exists.
