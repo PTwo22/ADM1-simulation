@@ -25,6 +25,27 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 
 ## Structure
 ![High level diagra](high-level-diagram.png)
+### CLasses
+#### Feedstock
+**Description**:
+
+**Inputs**:
+
+**Output**:
+
+#### Pretreatment
+**Description**: Translates physical operational conditions (temperature, pH, reaction time, and enzyme dosage) into a representation of the effectiveness of the degraded waste. Computes 4 specific response factors for each organic matter class.
+**Inputs**: Operational configs and kinetic constants.
+**Outputs**: Fungal Pretreatment Severity Index (FPSI) [ref: formula 14], global effectiveness dictionary (Ai) [ref: formula 13]. Passes FPSI to ```Digester``` class
+
+#### Digester
+**Description**:
+
+**Inputs**:
+
+**Output**:
+
+
 ```
 /ADM1-simulation
 ├── AD/

@@ -1,121 +1,90 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import os
+import math
+from typing import Dict
 
 """
-BASELINE:
-- Carbohydrates: 40-70% of VS, with 50% as our current baseline
-- Protein: 10-30% of VS, with 25% as the baseline
-- Lipids: 5-30% of VS, with 20% as the baseline
-- Inert fraction: approximately 5% in our baseline food-waste case
+Formulas presented in Pretreatment class: 9, 10, 11, 12, 13, 14
 """
 
-# * ================================================
-# * A. FEEDSTOCK AND ORGANIC-MATTER COMPOSITION
-# * ================================================
+class Pretreatment:
+    """Returns FPSI and fungal pretreatment effectiveness for each organic-matter class"""
+    def __init__(self, temp_pre: float, ph_pre: float, time_pre: float, 
+                 enzyme_doses: Dict[str, float], config: Dict[str, Dict[str, float]], 
+                 weights: Dict[str, float]):
+        self.temp_pre = temp_pre                # temperature
+        self.ph_pre = ph_pre                    # pH
+        self.time_pre = time_pre                # pretreatment duration
+        self.enzyme_doses = enzyme_doses        # enzyme_doses
 
+        # parameters: K_E, T_opt, sigma_T, pH_opt, sigma_pH, k_t
+        self.config = config
 
-def calculate_total_solids(M_wet, f_TS):
-    """total solids (TS)"""
-    M_TS = M_wet * f_TS
-    return M_TS
+        self.weights = weights
+        self.organic_classes = ["carb", "protein", "lipid", "inert"]
 
-def calculate_volatile_solids(M_TS, f_vs_ts):
-    """volatile solids (VS)"""
-    M_VS = M_TS * f_vs_ts
-    return M_VS
-    
+        self.A = self._calculate_effectiveness() # formula 13
+        self.fpsi = self._calculate_fpsi()       # formula 14
 
-def calculate_mass_of_organic_matter_class(M_VS, fractions):
-    """mass of each organic matter class
-    M_carb = M_VS * f_carb and so on
-    RETURN DICT
-    """
-    pass
+    def _calculate_dose_response(self, i) -> float:
+        """returns enzyme does response term"""
+        E_i = self.enzyme_doses.get(i, 0.0)     # enzyme dose or activity for organic-matter class i
+        K_E_i = self.config[i]["K_E"]           # half-saturation enzyme constant
 
+        # Formula 9: D_i = E_i / (K_E_i + E_i)
+        return E_i / (K_E_i + E_i) if (K_E_i + E_i) > 0 else 0.0
 
-# * ================================================
-# * B. SCG co-substrate composition
-# * ================================================
+    def _calculate_temp_response(self, i) -> float:
+        """returns temperature response"""
+        T_opt_i = self.config[i]["T_opt"]       #  optimum temperature for enzyme group i
+        sigma_T_i = self.config[i]["sigma_T"]   # temperature tolerance width
 
-def calculate_scg_food_waste_mass_split():
-    """SCG co-substrate composition
-    RETURN DICT
-    """
-    pass
+        # Formula 10: T_i = exp(-((T_pre - T_opt_i) / sigma_T_i)^2)
+        return math.exp(-((self.temp_pre - T_opt_i) / sigma_T_i) ** 2) if sigma_T_i > 0 else 0.0
 
-def calculate_mixed_substrate_composition(f_i_mixed, f_i_FW, f_i_SCG):
-    """mixed substrate composition
-    i = carbohydrate, protein, lipid or inert -> iterate through a list/dict
-    RETURN DICT
-    """
-    
-    pass
+    def _calculate_ph_response(self, i) -> float:
+        """returns pH response"""
+        ph_opt_i = self.config[i]["pH_opt"]     # optimum pH for enzyme group i
+        alpha_ph_i = self.config[i]["alpha_pH"] # pH tolerance width
 
-# * ================================================
-# * C. Baseline methane potential
-# * ================================================
+        # Formula 11: P_i = exp(-((ph_pre - ph_opt_i) / alpha_ph_i)^2)
+        return math.exp(-((self.ph_pre - ph_opt_i) / alpha_ph_i)**2) if alpha_ph_i > 0 else 0.0
 
-def calculate_theoretical_bmp(fractions, BMP_mix):
-    """theoretical BMP from organic-matter class
-    Unit: Nm^3 CH4/kgVS
-    """
-    
-    pass
+    def _calculate_time_response(self, i) -> float:
+        """returns time response"""
+        k_t_i = self.config[i]["k_t"]           # time-response coefficient
 
-def calculate_baseline_methane_yield():
-    """baseline methane yield with biodegradability"""
-    pass
+        # Formula 12: R_i = 1 - e^(-k_t_i*t_pre)
+        return 1.0 - math.exp(-k_t_i * self.time_pre)
 
-# * ================================================
-# * D. Fungal pretreatment severity
-# * ================================================
+    def _calculate_effectiveness(self) -> Dict[str, float]:
+        """Fungal effectiveness for each class i. Useful as it prevents enzyme 
+        dose alone from directly predicting methane. The enzyme first changes 
+        substrate accessibility and biodegradability.
+        """
+        a_dict = {}                             # A_i = fungal enzyme effectiveness for substrate class i
+        for i in self.organic_classes:
+            if i not in self.config:
+                a_dict[i] = 0.0
+                continue
 
-def calculate_enzyme_dose_response():
-    pass
+            D_i = self._calculate_dose_response(i)
+            T_i = self._calculate_temp_response(i)
+            P_i = self._calculate_ph_response(i)
+            R_i = self._calculate_time_response(i)
 
-def calculate_temperature_response():
-    pass
+            # Formula 13: A_i = D_i * T_i * P_i * R_i
+            a_dict[i] = D_i * T_i * P_i * R_i
 
-def calculate_ph_response():
-    pass
+        return a_dict
 
-def calculate_time_response():
-    pass
+    def _calculate_fpsi(self, i) -> float:
+        """returns overal fungal pretreatment severity index (FPSI)"""
+        fpsi = 0.0
+        for i in self.organic_classes:
+            w_i = self.weights.get(i, 0.0)
 
-def calculate_fungal_pretreatment_effectiveness():
-    """Fungal pretreatment effectiveness for each organic-matter class"""
-    pass
+            # Formula 14: FPSI = w_carb*A_carb + w_protein*A_protein + w_lipid*A_lipd + w_scg*A_scg
+            fpsi += w_i * self.A[i]
 
-def calculate_fungal_pretreatment_severity_index():
-    """FPSI"""
-    pass
+        return fpsi
 
-# * ================================================
-# * E. Pretreatment effect on substrate solubilisation
-# * ================================================
-
-def calculate_scod_increase():
-    pass
-
-def calculate_estimated_scod():
-    """SCOD after pretreatment"""
-    pass
-
-def calculate_soluble_sugar_release():
-    pass
-
-def calculate_fan_tan_change():
-    pass
-
-# * ================================================
-# * F. Hydrolysis and lag-phase modification
-# * ================================================
-
-def calculate_modified_hydrolysis_rate():
-    pass
-
-def calculate_lag_phase_reduction():
-    pass
 

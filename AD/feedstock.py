@@ -9,6 +9,10 @@ import os
 Formulas presented in Feedstock class: 1, 2, 3, 4, 6, 7
 """
 class Feedstock:
+    """
+    Defines what and how much of each feedstock exists.
+    Returns component masses, theoretical BMP mix
+    """
     def __init__(self, m_wet: float, f_ts: float, f_vs_ts: float, f_scg: float, 
                  fw_fractions: Dict[str, float], scg_fractions: Dict[str, float]):
         
