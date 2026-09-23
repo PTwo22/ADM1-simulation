@@ -77,7 +77,7 @@ class Pretreatment:
         return a_dict
 
     def _calculate_fpsi(self, i) -> float:
-        """returns overal fungal pretreatment severity index (FPSI)"""
+        """returns overall fungal pretreatment severity index (FPSI)"""
         fpsi = 0.0
         for i in self.organic_classes:
             w_i = self.weights.get(i, 0.0)

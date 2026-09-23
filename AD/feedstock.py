@@ -17,12 +17,12 @@ class Feedstock:
     def __init__(self, m_wet: float, f_ts: float, f_vs_ts: float, f_scg: float, 
                  fw_fractions: Dict[str, float], scg_fractions: Dict[str, float]):
         
-        self.m_wet = m_wet
-        self.f_ts = f_ts
-        self.f_vs_ts = f_vs_ts
-        self.f_scg = f_scg
-        self.fw_fractions = fw_fractions
-        self.scg_fractions = scg_fractions
+        self.m_wet = m_wet                  # wet mass of food waste 
+        self.f_ts = f_ts                    # total solids fraction
+        self.f_vs_ts = f_vs_ts              # volatile solids fraction of total solids
+        self.f_scg = f_scg                  # SCG ratio, for example 0, 0.10, 0.20 or 0.30 
+        self.fw_fractions = fw_fractions    # organic-matter fraction - Dict for carb, protein, lipid, and inert
+        self.scg_fractions = scg_fractions  # builds composition of SCG 
 
         self.organic_classes = ["carb", "protein", "lipid", "inert"]
         self._validate_fractions()

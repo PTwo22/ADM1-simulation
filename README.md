@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```
 
 Optional: Install Better Comments extension for VSCode for better reading of codebase
-```bash
+```
 Name: Better Comments
 Id: aaron-bond.better-comments
 Description: Improve your code commenting by annotating with alert, informational, TODOs, and more!
@@ -24,14 +24,15 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 ```
 
 ## Structure
-![High level diagra](high-level-diagram.png)
+![High level diagram](high-level-diagram.png)
 ### CLasses
 #### Feedstock
-- **Description**:
+- **Description**: This is where all the materials/feedstocks amount lives before any AD or pretreatment occurs. Transforms operational inputs into volatile solid masses that the bacterial kinetics models require to compute methane generation.
 
-- **Inputs**:
+- **Inputs**: 
 
-- **Outputs**:
+- **Outputs**: 
+
 
 #### Pretreatment
 - **Description**: Translates physical operational conditions (temperature, pH, reaction time, and enzyme dosage) into a representation of the effectiveness of the degraded waste. Computes 4 specific response factors for each organic matter class.
@@ -44,7 +45,7 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 #### Digester
 - **Description**: The main simulation for the CSTR (Continuous Stirred Tank Reactor) to do the AD process where the ```Feedstock``` class' physical mass is combined with the modifications from the Pretreatment class to calculate methane yield, kinetic shifts, and energy recovery.
 
-- **Inputs**:
+- **Inputs**: 
 
 - **Outputs**: methane yield, kinetic shifts, and energy recovery
 
