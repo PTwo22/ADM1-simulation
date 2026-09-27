@@ -1,4 +1,4 @@
-"""Centralised baseline parameters for the Phase 1 screening model.
+"""Centralised feedstock and pretreatment inputs for the ADM1 model.
 
 Values are literature-informed or provisional inputs from the supplied team
 datasets. They are starting values for sensitivity analysis, not universally
@@ -68,48 +68,4 @@ FPSI_WEIGHTS = {
     "protein": 0.25,
     "lipid": 0.25,
     "inert": 0.25,
-}
-
-DIGESTER_CALIBRATION = {
-    "alpha_hyd": 2.5,
-}
-
-DIGESTER_BASELINE = {
-    "hydrolysis_rates_per_d": {
-        "carb": 0.25,
-        "protein": 0.20,
-        "lipid": 0.10,
-        "inert": 0.0,
-    },
-    "biodegradability": {
-        "carb": 0.90,
-        "protein": 0.60,
-        "lipid": 0.73,
-        "inert": 0.0,
-    },
-    "temperature_c": 35.0,
-    "pH": 7.2,
-    "olr_kg_vs_per_m3_d": 2.0,
-    "hrt_d": 20.0,
-    # Used only to estimate total raw-biogas flow in this screening version.
-    "methane_fraction": 0.60,
-}
-
-SYSTEM_CONSTANTS = {
-    "lhv_ch4_mj_per_nm3": 35.8,
-    "chp_electrical_efficiency": 0.35,
-}
-
-# Retained for later solubilisation calibration; not applied independently in
-# the methane model because doing so would double-count pretreatment benefits.
-SCOD_CALIBRATION = {
-    "control_kg_cod_per_m3": 68.4,
-    "alpha_scod": 1.41,
-}
-
-MODEL_CONFIG = {
-    "BMP_CONSTANTS": BMP_CONSTANTS,
-    "DIGESTER_CALIBRATION": DIGESTER_CALIBRATION,
-    "DIGESTER_BASELINE": DIGESTER_BASELINE,
-    "SYSTEM_CONSTANTS": SYSTEM_CONSTANTS,
 }
