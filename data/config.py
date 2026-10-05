@@ -36,11 +36,12 @@ BMP_CONSTANTS = {
 
 # Provisional commercial fungal-enzyme screening case. A separate kinetic
 # model is required for living-fungus SSF and co-culture scenarios.
-PRETREATMENT_BASELINE = { # original
+PRETREATMENT_BASELINE = {
     "time_h": 30.0,
     "temperature_c": 30.0,
-    "pH": 5.5,
+    "pH": 4.8,
 }
+
 
 ENZYME_DOSES = {
     "carb": 10.0,

@@ -99,6 +99,10 @@ class ADM1Parameters:
     k_hyd_pr: float = 0.20
     k_hyd_li: float = 0.10
 
+    # k_hyd_ch: float = 10.0
+    # k_hyd_pr: float = 10.0
+    # k_hyd_li: float = 10.0
+
     # Maximum uptake and half-saturation parameters
     k_m_su: float = 30.0
     K_S_su: float = 0.50
