@@ -53,15 +53,16 @@ def build_influent(
     temperature_c: float,
     bmp_constants: Mapping[str, float],
     parameters: ADM1Parameters,
-    scod_control_kg_cod_m3: float = 68.4,
+    scod_control_kg_cod_m3: float = 18.0,
     total_cod_reference_kg_m3: float = 197.0,
-    alpha_scod: float = 1.41,
-    alpha_hyd: float = 2.5,
+    alpha_scod: float = 0.80,
+    alpha_hyd: float = 1.50,
     inert_cod_per_kg_vs: float = 1.42,
     inorganic_carbon_kmol_m3: float = 0.05,
     inorganic_nitrogen_kmol_m3: float = 0.04,
     strong_anions_kmol_m3: float = 0.02,
     soluble_cod_fraction_override: float | None = None,
+    **_kwargs,
 ) -> InfluentDefinition:
     """Create a COD-conserving ADM1 influent from project inputs.
 
