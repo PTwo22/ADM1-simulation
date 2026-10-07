@@ -12,9 +12,10 @@ from AD.adm1.results import ADM1SimulationResult
 from data.adm1_config import ADM1_TRANSLATION, ADM1_TRANSLATION_STATUS
 from data.config import (
     BMP_CONSTANTS,
+    ENZYME_DOSE_SPLIT,
     FPSI_WEIGHTS,
-    PRETREATMENT_BASELINE,
     PRETREATMENT_CONFIG,
+    PRETREATMENT_PROFILES,
 )
 from model_analysis.stability import (
     StabilityConfig,
@@ -73,14 +74,25 @@ def _build_treatment(spec: ScenarioSpec):
         return NoPretreatment()
     if spec.pretreatment_kind in {"custom", "chemical_cao_proxy"}:
         return _CustomTreatment(spec.effectiveness_override, spec.fpsi_override)
-    doses = {name: spec.enzyme_dose_u_g for name in FPSI_WEIGHTS}
+    profile = PRETREATMENT_PROFILES[spec.pretreatment_profile]
+    doses = {
+        name: spec.enzyme_dose_u_g * ENZYME_DOSE_SPLIT[name]
+        for name in FPSI_WEIGHTS
+    }
+    scg_presence = min(1.0, max(0.0, spec.scg_fraction_vs / 0.30))
     return Pretreatment(
-        temp_pre=PRETREATMENT_BASELINE["temperature_c"],
-        ph_pre=PRETREATMENT_BASELINE["pH"],
+        temp_pre=profile["temperature_c"],
+        ph_pre=profile["pH"],
         time_pre=spec.pretreatment_time_h,
         enzyme_doses=doses,
         config=PRETREATMENT_CONFIG,
         weights=FPSI_WEIGHTS,
+        presence_factors={
+            "carb": 1.0,
+            "protein": 1.0,
+            "lipid": 1.0,
+            "inert": scg_presence,
+        },
     )
 
 
@@ -99,6 +111,8 @@ def run_scenario(
     settings = inputs or SimulationInputs()
     settings.validate()
     treatment = _build_treatment(spec)
+    pretreatment_profile = PRETREATMENT_PROFILES[spec.pretreatment_profile]
+    fungal_profile_applies = spec.pretreatment_kind == "fungal_enzyme_proxy"
     feedstock = settings.build_feedstock(spec.scg_fraction_vs)
     adm1_parameters = parameters or ADM1Parameters()
     influent = build_influent(
@@ -155,6 +169,17 @@ def run_scenario(
             "pretreatment_kind": spec.pretreatment_kind,
             "pretreatment_time_h": spec.pretreatment_time_h,
             "enzyme_dose_u_g": spec.enzyme_dose_u_g,
+            "enzyme_dose_basis": spec.enzyme_dose_basis,
+            "pretreatment_temperature_c": (
+                pretreatment_profile["temperature_c"] if fungal_profile_applies else None
+            ),
+            "pretreatment_pH": (
+                pretreatment_profile["pH"] if fungal_profile_applies else None
+            ),
+            "pretreatment_profile": (
+                spec.pretreatment_profile if fungal_profile_applies else None
+            ),
+            "pretreatment_effectiveness": dict(treatment.A),
             "fpsi_applicable": spec.fpsi_applicable,
             "soluble_cod_fraction_override": spec.soluble_cod_fraction_override,
             "scenario_inputs_provisional": spec.provisional,

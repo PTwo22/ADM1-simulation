@@ -311,3 +311,119 @@ def assess_stability(
         source=config.source,
         profile_id=config.profile_id,
     )
+
+
+# Practical-yield post-processing used by the reference scenario graph.
+
+
+@dataclass(frozen=True)
+class PracticalYieldStabilityConfig:
+    """Constants for converting raw methane yield into practical yield."""
+
+    control_vfa_mg_l: float = 1800.0
+    control_fan_mg_l: float = 180.0
+    control_tan_mg_l: float = 1200.0
+
+    critical_vfa_mg_l: float = 6000.0
+    critical_fan_mg_l: float = 600.0
+    critical_tan_mg_l: float = 3500.0
+    critical_olr_kg_vs_m3_d: float = 5.0
+
+    baseline_olr_kg_vs_m3_d: float = 2.5
+    initial_pH: float = 7.2
+    optimal_pH: float = 7.1
+    minimum_pH: float = 6.2
+    maximum_pH: float = 7.8
+
+    fpsi_to_vfa: float = 0.55
+    excess_olr_to_vfa: float = 0.25
+    protein_to_fan: float = 0.70
+    protein_to_tan: float = 0.20
+    vfa_to_pH_drop: float = 0.45
+
+    weight_vfa: float = 0.35
+    weight_ammonia: float = 0.25
+    weight_pH: float = 0.20
+    weight_olr: float = 0.20
+
+
+DEFAULT_PRACTICAL_YIELD_STABILITY = PracticalYieldStabilityConfig()
+
+
+@dataclass(frozen=True)
+class PracticalYieldStability:
+    """Stability score, individual risks, and estimated concentrations."""
+
+    score: float
+    total_risk: float
+    vfa_risk: float
+    ammonia_risk: float
+    pH_risk: float
+    olr_risk: float
+    vfa_mg_l: float
+    fan_mg_l: float
+    tan_mg_l: float
+    estimated_pH: float
+
+
+def _clip(value: float, minimum: float, maximum: float) -> float:
+    return min(maximum, max(minimum, value))
+
+
+def calculate_practical_yield_stability(
+    *,
+    fpsi: float,
+    protein_effectiveness: float,
+    olr_kg_vs_m3_d: float,
+    config: PracticalYieldStabilityConfig = DEFAULT_PRACTICAL_YIELD_STABILITY,
+) -> PracticalYieldStability:
+    """Calculate the post-processing stability score for practical yield."""
+
+    excess_olr_fraction = (
+        max(olr_kg_vs_m3_d - config.baseline_olr_kg_vs_m3_d, 0.0)
+        / config.baseline_olr_kg_vs_m3_d
+    )
+    vfa_mg_l = config.control_vfa_mg_l * (
+        1.0
+        + config.fpsi_to_vfa * fpsi
+        + config.excess_olr_to_vfa * excess_olr_fraction
+    )
+    fan_mg_l = config.control_fan_mg_l * (
+        1.0 + config.protein_to_fan * protein_effectiveness
+    )
+    tan_mg_l = config.control_tan_mg_l * (
+        1.0 + config.protein_to_tan * protein_effectiveness
+    )
+    estimated_pH = _clip(
+        config.initial_pH
+        - config.vfa_to_pH_drop * (vfa_mg_l / config.critical_vfa_mg_l),
+        config.minimum_pH,
+        config.maximum_pH,
+    )
+
+    vfa_risk = vfa_mg_l / config.critical_vfa_mg_l
+    ammonia_risk = max(
+        fan_mg_l / config.critical_fan_mg_l,
+        tan_mg_l / config.critical_tan_mg_l,
+    )
+    pH_risk = abs(estimated_pH - config.optimal_pH) / config.optimal_pH
+    olr_risk = olr_kg_vs_m3_d / config.critical_olr_kg_vs_m3_d
+    total_risk = (
+        config.weight_vfa * vfa_risk
+        + config.weight_ammonia * ammonia_risk
+        + config.weight_pH * pH_risk
+        + config.weight_olr * olr_risk
+    )
+
+    return PracticalYieldStability(
+        score=_clip(1.0 - total_risk, 0.0, 1.0),
+        total_risk=_clip(total_risk, 0.0, 1.5),
+        vfa_risk=vfa_risk,
+        ammonia_risk=ammonia_risk,
+        pH_risk=pH_risk,
+        olr_risk=olr_risk,
+        vfa_mg_l=vfa_mg_l,
+        fan_mg_l=fan_mg_l,
+        tan_mg_l=tan_mg_l,
+        estimated_pH=estimated_pH,
+    )

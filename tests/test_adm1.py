@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import math
+from pathlib import Path
+import tempfile
 import unittest
 
 import numpy as np
@@ -31,11 +33,18 @@ from model_analysis.sensitivity import run_oat_sensitivity
 from model_analysis.stability import (
     StabilityConfig,
     assess_stability,
+    calculate_practical_yield_stability,
     food_waste_literature_profile,
 )
 from model_analysis.validation import screening_consistency
 from pretreatment import NoPretreatment, Pretreatment
-from run_adm1 import _parse_scenario_ids, _parse_sensitivity_factor
+from run_adm1 import (
+    BITA_SCENARIOS,
+    _parse_scenario_ids,
+    _parse_sensitivity_factor,
+    bita_common_inputs,
+    run_bita_input_scenarios,
+)
 from scenarios import (
     SCENARIOS,
     SimulationInputs,
@@ -140,7 +149,26 @@ class FeedstockAndPretreatmentTests(unittest.TestCase):
         self.assertTrue(all(value == 0.0 for value in control.A.values()))
 
     def test_baseline_fpsi_matches_response_equation(self):
-        expected = 0.5 * (1.0 - math.exp(-0.4 * 24.0))
+        expected = 0.0
+        for name, weight in FPSI_WEIGHTS.items():
+            values = PRETREATMENT_CONFIG[name]
+            dose = ENZYME_DOSES[name]
+            expected += weight * (
+                dose / (values["K_E"] + dose)
+                * math.exp(
+                    -(
+                        (PRETREATMENT_BASELINE["temperature_c"] - values["T_opt"])
+                        / values["sigma_T"]
+                    ) ** 2
+                )
+                * math.exp(
+                    -(
+                        (PRETREATMENT_BASELINE["pH"] - values["pH_opt"])
+                        / values["sigma_pH"]
+                    ) ** 2
+                )
+                * (1.0 - math.exp(-values["k_t"] * 24.0))
+            )
         self.assertAlmostEqual(self._treatment().fpsi, expected)
 
     def test_negative_enzyme_dose_is_rejected(self):
@@ -207,10 +235,42 @@ class ScenarioTests(unittest.TestCase):
         self.assertTrue({f"S{number}" for number in range(1, 10)} <= set(SCENARIOS))
         self.assertIn("C1", SCENARIOS)
         self.assertEqual(get_scenario("s6").scg_fraction_vs, 0.10)
-        self.assertEqual(get_scenario("S9").olr_kg_vs_m3_d, 4.0)
+        self.assertEqual(get_scenario("S9").olr_kg_vs_m3_d, 4.5)
         self.assertEqual(get_scenario("S3").reference_scenario_id, "S1")
+        self.assertEqual(get_scenario("S3").enzyme_dose_u_g, 60.0)
+        self.assertEqual(get_scenario("S3").enzyme_dose_basis, "U/g VS")
+        self.assertEqual(get_scenario("S3").pretreatment_profile, "bita_s3_reference")
+        self.assertEqual(get_scenario("S3").olr_kg_vs_m3_d, 2.5)
+        self.assertEqual(get_scenario("S3").hrt_d, 25.0)
         self.assertEqual(get_scenario("S5").reference_scenario_id, "S3")
         self.assertEqual(get_scenario("S9").reference_scenario_id, "S6")
+
+    def test_s1_s9_inputs_match_bita_github_scenarios(self):
+        expected = {
+            "S1": (0.0, 0.0, 0.00, 2.5, 25.0),
+            "S2": (30.0, 12.0, 0.00, 2.5, 25.0),
+            "S3": (60.0, 24.0, 0.00, 2.5, 25.0),
+            "S4": (90.0, 36.0, 0.00, 2.5, 25.0),
+            "S5": (90.0, 72.0, 0.00, 2.5, 25.0),
+            "S6": (60.0, 24.0, 0.10, 2.5, 25.0),
+            "S7": (60.0, 24.0, 0.20, 2.5, 25.0),
+            "S8": (60.0, 24.0, 0.30, 2.5, 25.0),
+            "S9": (60.0, 24.0, 0.10, 4.5, 20.0),
+        }
+        for scenario_id, values in expected.items():
+            scenario = get_scenario(scenario_id)
+            self.assertEqual(
+                (
+                    scenario.enzyme_dose_u_g,
+                    scenario.pretreatment_time_h,
+                    scenario.scg_fraction_vs,
+                    scenario.olr_kg_vs_m3_d,
+                    scenario.hrt_d,
+                ),
+                values,
+            )
+            self.assertEqual(scenario.enzyme_dose_basis, "U/g VS")
+            self.assertEqual(scenario.pretreatment_profile, "bita_s3_reference")
 
     def test_command_line_scenario_selection(self):
         self.assertEqual(_parse_scenario_ids("s1, S3 s6"), ("S1", "S3", "S6"))
@@ -238,13 +298,67 @@ class ScenarioTests(unittest.TestCase):
             self.assertLess(abs(result.carbon_balance_residual_kmol[-1]), 1e-7)
             self.assertLess(abs(result.nitrogen_balance_residual_kmol[-1]), 1e-7)
 
-    def test_moderate_pretreatment_changes_control_prediction(self):
+    def test_updated_s3_pretreatment_changes_control_prediction(self):
         results = {result.scenario_id: result for result in self.comparison.results}
-        self.assertGreater(
+        self.assertNotAlmostEqual(
             results["S3"].methane_yield_l_per_kg_vs,
             results["S1"].methane_yield_l_per_kg_vs,
         )
         self.assertEqual(results["S6"].scg_fraction_vs, 0.10)
+
+    def test_updated_s3_uses_bita_pretreatment_conditions_only(self):
+        result = run_scenario("S3", duration_d=2.0, output_points=3)
+        self.assertEqual(result.metadata["pretreatment_temperature_c"], 30.0)
+        self.assertEqual(result.metadata["pretreatment_pH"], 5.5)
+        self.assertEqual(result.metadata["enzyme_dose_u_g"], 60.0)
+        self.assertEqual(result.metadata["enzyme_dose_basis"], "U/g VS")
+        self.assertEqual(result.metadata["pretreatment_time_h"], 24.0)
+        self.assertEqual(result.metadata["simulation_inputs"]["temperature_c"], 35.0)
+
+    def test_bita_validation_inputs_match_supplied_scenarios(self):
+        settings = bita_common_inputs(duration_d=2.0, output_points=3)
+        self.assertEqual(settings.wet_feed_mass_kg, 10.0)
+        self.assertEqual(settings.total_solids_fraction, 0.25)
+        self.assertEqual(settings.volatile_solids_fraction_of_ts, 0.90)
+        self.assertEqual(settings.temperature_c, 35.0)
+        self.assertEqual(settings.adm1_translation["scod_control_kg_cod_m3"], 18.0)
+        self.assertEqual(len(BITA_SCENARIOS), 9)
+        self.assertEqual(BITA_SCENARIOS[2].enzyme_dose_u_g, 60.0)
+        self.assertEqual(BITA_SCENARIOS[2].pretreatment_time_h, 24.0)
+        self.assertEqual(BITA_SCENARIOS[8].olr_kg_vs_m3_d, 4.5)
+        self.assertEqual(BITA_SCENARIOS[8].hrt_d, 20.0)
+
+    def test_bita_validation_creates_only_methane_graph(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = run_bita_input_scenarios(
+                output_directory=directory,
+                duration_d=2.0,
+                output_points=3,
+            )
+            self.assertEqual(len(report.rows), 9)
+            self.assertEqual(len(report.graph_paths), 1)
+            self.assertTrue(all(Path(path).is_file() for path in report.graph_paths))
+            for row in report.rows:
+                self.assertAlmostEqual(
+                    row["methane_yield_l_per_kg_vs"],
+                    row["raw_adm1_methane_yield_l_per_kg_vs"]
+                    * row["stability_score"],
+                )
+
+    def test_control_stability_penalty_matches_reference_formula(self):
+        adjustment = calculate_practical_yield_stability(
+            fpsi=0.0,
+            protein_effectiveness=0.0,
+            olr_kg_vs_m3_d=2.5,
+        )
+        expected_risk = (
+            0.35 * (1800.0 / 6000.0)
+            + 0.25 * (1200.0 / 3500.0)
+            + 0.20 * abs((7.2 - 0.45 * 1800.0 / 6000.0) - 7.1) / 7.1
+            + 0.20 * (2.5 / 5.0)
+        )
+        self.assertAlmostEqual(adjustment.total_risk, expected_risk)
+        self.assertAlmostEqual(adjustment.score, 1.0 - expected_risk)
 
     def test_custom_treatment_requires_complete_measured_effects(self):
         with self.assertRaises(ValueError):
@@ -340,8 +454,8 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(recorded["influent_pH"], 7.0)
         self.assertEqual(len(result.time_d), 21)
         summary = result.summary()
-        self.assertAlmostEqual(summary["feed_total_solids_kg"], 0.4)
-        self.assertAlmostEqual(summary["feed_volatile_solids_kg"], 0.36)
+        self.assertAlmostEqual(summary["feed_total_solids_kg"], 0.5)
+        self.assertAlmostEqual(summary["feed_volatile_solids_kg"], 0.45)
         self.assertGreater(summary["gross_energy_kwh_for_feed_batch"], 0.0)
 
     def test_ui_inputs_reject_nan_and_non_integer_resolution(self):

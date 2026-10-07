@@ -7,9 +7,9 @@ marked provisional require calibration before predictive or design use.
 
 ADM1_TRANSLATION = {
     "total_cod_reference_kg_m3": 197.0,
-    "scod_control_kg_cod_m3": 68.4,
-    "alpha_scod": 1.41,
-    "alpha_hyd": 2.5,
+    "scod_control_kg_cod_m3": 18.0,
+    "alpha_scod": 0.80,
+    "alpha_hyd": 1.50,
     "inert_cod_per_kg_vs": 1.42,
     "inorganic_carbon_kmol_m3": 0.20,
     "inorganic_nitrogen_kmol_m3": 0.04,

@@ -34,6 +34,7 @@ class Pretreatment:
         enzyme_doses: Mapping[str, float],
         config: Mapping[str, Mapping[str, float]],
         weights: Mapping[str, float],
+        presence_factors: Mapping[str, float] | None = None,
     ) -> None:
         self.temp_pre = float(temp_pre)
         self.ph_pre = float(ph_pre)
@@ -41,6 +42,10 @@ class Pretreatment:
         self.enzyme_doses = dict(enzyme_doses)
         self.config = {name: dict(values) for name, values in config.items()}
         self.weights = dict(weights)
+        self.presence_factors = {
+            name: float((presence_factors or {}).get(name, 1.0))
+            for name in self.organic_classes
+        }
 
         self._validate_inputs()
         self.A = self._calculate_effectiveness()
@@ -60,6 +65,11 @@ class Pretreatment:
             raise ValueError("FPSI weights must be finite and non-negative")
         if not math.isclose(sum(self.weights.values()), 1.0, abs_tol=1e-9):
             raise ValueError("FPSI weights must sum to 1.0")
+        if any(
+            not math.isfinite(value) or not 0.0 <= value <= 1.0
+            for value in self.presence_factors.values()
+        ):
+            raise ValueError("Presence factors must be finite values from zero to one")
 
         required = {"K_E", "T_opt", "sigma_T", "pH_opt", "sigma_pH", "k_t"}
         for name in self.organic_classes:
@@ -89,12 +99,12 @@ class Pretreatment:
     def _calculate_temp_response(self, name: str) -> float:
         values = self.config[name]
         z_score = (self.temp_pre - values["T_opt"]) / values["sigma_T"]
-        return math.exp(-0.5 * z_score**2)
+        return math.exp(-z_score**2)
 
     def _calculate_ph_response(self, name: str) -> float:
         values = self.config[name]
         z_score = (self.ph_pre - values["pH_opt"]) / values["sigma_pH"]
-        return math.exp(-0.5 * z_score**2)
+        return math.exp(-z_score**2)
 
     def _calculate_time_response(self, name: str) -> float:
         return 1.0 - math.exp(-self.config[name]["k_t"] * self.time_pre)
@@ -107,6 +117,7 @@ class Pretreatment:
                 * self._calculate_temp_response(name)
                 * self._calculate_ph_response(name)
                 * self._calculate_time_response(name)
+                * self.presence_factors[name]
             )
         return effectiveness
 

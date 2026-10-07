@@ -43,7 +43,9 @@ The program displays this menu:
 2. Show all scenarios
 3. Choose specific scenario(s)
 4. Test the effect of one input
-5. Exit
+5. Print S1-S9 comparison table
+6. Run ADM1 with Dr Bita inputs and create graphs
+7. Exit
 ```
 
 Options 3 and 4 allow another selection without restarting the program:
@@ -68,7 +70,14 @@ python run_adm1.py S1 S4 S6
 python run_adm1.py --sensitivity olr
 python run_adm1.py --sensitivity hrt
 python run_adm1.py --sensitivity pretreatment_time
+
+# Run S1-S9 with the same shared inputs as Dr Bita's screening model
+python run_adm1.py --bita-validation
 ```
+
+The validation command writes only one ADM1 methane-yield graph to
+`validation_outputs/`. It does not combine or compare Dr Bita's output values;
+those can be compared separately.
 
 ## Scenarios
 
@@ -166,7 +175,7 @@ python -m unittest discover -s tests -v
 A successful test run ends with:
 
 ```text
-Ran 32 tests
+Ran 35 tests
 OK
 ```
 
