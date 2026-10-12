@@ -34,9 +34,9 @@ class Feedstock:
     def _validate_fractions(self) -> None:
         """Formula: f_carb + f_protein + f_lipid + f_inert = 1"""
         # NOTE add rel_tol=[value] for minor discrepecies
-        if not math.isclose(sum(self.fw_fractions.values(), 1.0)):
-            raise ValueError("FW fractions must sum to 1.0")
-        if not math.isclose(sum(self.scg_fractions.values(), 1.0)):
+        if not math.isclose(sum(self.fw_fractions.values()), 1.0, rel_tol=1e-5):
+            raise ValueError("Food Waste fractions must sum to 1.0")
+        if not math.isclose(sum(self.scg_fractions.values()), 1.0, rel_tol=1e-5):
             raise ValueError("SCG fractions must sum to 1.0")
 
     def _calculate_solids(self) -> None:

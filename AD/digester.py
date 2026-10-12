@@ -1,4 +1,5 @@
 from typing import Dict
+from data.config import *
 
 """
 Formulas presented in Digester class: 16, 19, 20, 21, 22, 23, 24, [30, 31, 32]
@@ -14,12 +15,13 @@ class Digester:
         self.pretreatment = pretreatment
 
         self.calib = config["DIGESTER_CALIBRATION"]
-        self.baseline = config["DIGESTER_BASELINE"]
+        self.baselines = config["DIGESTER_BASELINES"]
         self.bmp_constants = config["BMP_CONSTANTS"]
 
         self.organic_classes = ["carb", "protein", "lipid", "inert"]
 
         self.modified_kinetics = self._calculate_modified_kinetics()
+        self.b_treated = self._calculate_treated_biodegradability()
         self.y_ch4_control = self._calculate_baseline_yield()
         self.y_ch4_treated = self._calculate_treated_yield()
         
@@ -29,7 +31,7 @@ class Digester:
 
     def _calculate_modified_kinetics(self) -> Dict[str, float]:
         """calculates modified SCOD, hydrolysis rate, and lag phase"""
-        fpsi = self.pretreatments.fpsi
+        fpsi = self.pretreatment.fpsi
 
         # formula 16: SCOD_pretreated = SCOD_control * (1 + alpha_SCOD * FPSI)
         # where alpha_scod = calibration coefficient linking fungal pretreatment to SCOD increase
@@ -79,7 +81,7 @@ class Digester:
     def _calculate_treated_yield(self) -> float:
         """calculates total methane yield after pretreatment"""
         y_treated = 0.0
-        for i in self.classes:
+        for i in self.organic_classes:
             M_i = self.feedstock.component_masses.get(i, 0.0)
             BMP_i = self.bmp_constants.get(i, 0.0)
             B_treated = self.b_treated.get(i, 0.0) # difference

@@ -43,7 +43,7 @@ class Pretreatment:
     def _calculate_ph_response(self, i) -> float:
         """returns pH response"""
         ph_opt_i = self.config[i]["pH_opt"]     # optimum pH for enzyme group i
-        alpha_ph_i = self.config[i]["alpha_pH"] # pH tolerance width
+        alpha_ph_i = self.config[i]["sigma_pH"] # pH tolerance width
 
         # Formula 11: P_i = exp(-((ph_pre - ph_opt_i) / alpha_ph_i)^2)
         return math.exp(-((self.ph_pre - ph_opt_i) / alpha_ph_i)**2) if alpha_ph_i > 0 else 0.0
@@ -76,7 +76,7 @@ class Pretreatment:
 
         return a_dict
 
-    def _calculate_fpsi(self, i) -> float:
+    def _calculate_fpsi(self) -> float:
         """returns overall fungal pretreatment severity index (FPSI)"""
         fpsi = 0.0
         for i in self.organic_classes:
