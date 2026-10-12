@@ -1,8 +1,9 @@
 from typing import Dict
+import numpy as np
 from data.config import *
 
 """
-Formulas presented in Digester class: 16, 19, 20, 21, 22, 23, 24, [30, 31, 32]
+Formulas presented in Digester class: 16, 19, 20, 21, 22, 23, 24, 26, [30, 31, 32], [33, 34, 35, 36, 37]
 """
 
 class Digester:
@@ -120,3 +121,76 @@ class Digester:
             "E_electricity": e_electricity_treated,
             "improvement_percent": energy_improvement
         }
+
+    def _calculate_stability_risks(self, current_olr: float, config: dict) -> dict:
+        """calculates stability and inhibition indicators (formulas 18, 33-37)"""
+        thresholds = config["RISK_THRESHOLDS"]
+        weights = config["STABILITY_WEIGHTS"]
+        conditions = config["DIGESTER_CONDITIONS"]
+
+        olr_scaling_factor = current_olr / 2.5 # NOTE 2.5 IS THE OLR FOR BASELINE (S1)
+        base_fan = conditions["fan_actual"] * olr_scaling_factor
+        
+        # Formula 18: FAN_pretreated = FAN_control * (1 + alpha_FAN * A_protein)
+        a_protein = self.pretreatment.A.get("protein", 0.0)
+        # ! ASSUMED VALUE
+        fan_treated = base_fan * (1.0 + (0.20 * a_protein)) 
+        
+        # formula 33 & 34: VFA and ammonia risk
+        r_vfa = (conditions["vfa_actual"] * olr_scaling_factor) / thresholds['vfa_crit']
+        r_nh3 = fan_treated / thresholds["fan_crit"]
+        # formula 35 & 36: pH and OLR risk
+        r_ph = abs(conditions["ph_actual"] - thresholds["ph_opt"]) / thresholds["ph_opt"]
+        r_olr = current_olr / thresholds["olr_crit"]
+        
+        # formula 37: combined stability score
+        total_risk = (weights['w_vfa'] * r_vfa) + (weights['w_nh3'] * r_nh3) + (weights['w_ph'] * r_ph) + (weights['w_olr'] * r_olr)
+                     
+        # stability must be constrained between 0 and 1
+        stability_score = max(0.0, min(1.0, 1.0 - total_risk))
+        
+        return {
+            "R_total": total_risk,
+            "Stability": stability_score
+        }
+
+    def get_practical_yields(self, current_olr: float, config: dict) -> dict:
+        """applies the stability penalty to calculate practical yields and specific efficiency - no formula applies"""
+        risks = self._calculate_stability_risks(current_olr, config)
+        # apply the stability inhibition multiplier to the theoretical treated yield
+        practical_yield_nm3 = self.y_ch4_treated * risks['Stability']
+        
+        # calculate specific yield: (Liters of CH4) / (kg VS added)
+        # 1 Nm3 = 1000 Liters - current_olr represents the kg VS added per m3.
+        specific_yield_L_kgvs = (practical_yield_nm3 * 1000) / current_olr
+        
+        return {
+            "R_total": risks["R_total"],
+            "Stability": risks["Stability"],
+            "Practical_Yield_Nm3": practical_yield_nm3,
+            "Specific_Yield_L_kgVS": specific_yield_L_kgvs
+        }
+
+    def calculate_gompertz_curve(self, time_array: np.ndarray, is_treated: bool = True) -> np.ndarray:
+        """calculates Modified Gompertz model for cumulative methane over time"""
+        # select parameters based on whether we are plotting the control or treated curve
+        # ! NOTE: LAG AND KINETICS ARE ASSUMED AS OF RIGHT NOW
+        if is_treated:
+            ch4_max = self.y_ch4_treated
+            lag = self.modified_kinetics['lag_modified'] # lag phase
+            k_hyd = self.modified_kinetics['k_hyd_modified']
+        else:
+            ch4_max = self.y_ch4_control
+            lag = self.baselines['lag_phase']
+            k_hyd = self.baselines['k_hyd']
+            
+        # approximate R_max (Maximum production rate) if not explicitly defined in config
+        r_max = (ch4_max * k_hyd) / np.e 
+        # formula 26: CH4(t) = CH4,max * exp{-exp[(R_max * e / CH4,max) * (lambda - t) + 1]}
+        exponent_term = ((r_max * np.e) / ch4_max) * (lag - time_array) + 1.0
+        cumulative_methane = ch4_max * np.exp(-np.exp(exponent_term))
+        
+        # zero out any negative initial values caused by the lag phase mathematics
+        cumulative_methane = np.maximum(0, cumulative_methane)
+        
+        return cumulative_methane

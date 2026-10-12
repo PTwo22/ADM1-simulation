@@ -18,7 +18,7 @@ SCG_FRACTIONS = {
 # ==========================================
 # 2. METHANE POTENTIAL CONSTANTS (Nm^3 CH4 / kg VS)
 # ==========================================
-BMP_CONSTANTS = {
+BMP_CONSTANTS = { # Batstone et al. (2002); Raposo et al. (2012) - our sourcing
     'carb': 0.415,   
     'protein': 0.496,
     'lipid': 1.014,  
@@ -28,46 +28,55 @@ BMP_CONSTANTS = {
 # ==========================================
 # 3. PRETREATMENT KINETIC CONSTANTS
 # ==========================================
-PRETREATMENT_CONFIG = {
-    'carb': {
-        'K_E': 45.0,      # Assumed: Half-saturation at 45 U/g VS to fit 0-90 dose range
-        'T_opt': 30.0,    # Assumed: Fungi optimum temperature
-        'sigma_T': 5.0,   # Assumed: Temperature tolerance width
-        'pH_opt': 5.5,    # Assumed: Fungi optimum pH
-        'sigma_pH': 1.0,  # Assumed: pH tolerance width
-        'k_t': 0.05       # Assumed: Reaction rate constant (h^-1)
+PRETREATMENT_CONFIG = { # directly from dr. bita's code/paper
+    "carb": {
+        "K_E": 50.0,
+        "T_opt": 30.0,
+        "sigma_T": 8.0,
+        "pH_opt": 5.5,
+        "sigma_pH": 1.0,
+        "k_t": 0.050,
+        "weight": 0.35,
     },
-    'protein': {
-        'K_E': 50.0,      # Assumed
-        'T_opt': 30.0,    # Assumed
-        'sigma_T': 5.0,   # Assumed
-        'pH_opt': 5.5,    # Assumed
-        'sigma_pH': 1.0,  # Assumed
-        'k_t': 0.04       # Assumed
+    "protein": {
+        "K_E": 45.0,
+        "T_opt": 32.0,
+        "sigma_T": 8.0,
+        "pH_opt": 6.0,
+        "sigma_pH": 1.0,
+        "k_t": 0.040,
+        "weight": 0.25,
     },
-    'lipid': {
-        'K_E': 60.0,      # Assumed
-        'T_opt': 30.0,    # Assumed
-        'sigma_T': 5.0,   # Assumed
-        'pH_opt': 5.5,    # Assumed
-        'sigma_pH': 1.0,  # Assumed
-        'k_t': 0.02       # Assumed
+    "lipid": {
+        "K_E": 60.0,
+        "T_opt": 30.0,
+        "sigma_T": 8.0,
+        "pH_opt": 5.5,
+        "sigma_pH": 1.2,
+        "k_t": 0.030,
+        "weight": 0.20,
     },
-    'inert': {
-        'K_E': 40.0,      # Assumed: Fungi highly target inerts/lignocellulose
-        'T_opt': 30.0,    # Assumed
-        'sigma_T': 5.0,   # Assumed
-        'pH_opt': 5.5,    # Assumed
-        'sigma_pH': 1.0,  # Assumed
-        'k_t': 0.06       # Assumed: Fast degradation of structural matter
-    }
+    "SCG": {
+        "K_E": 70.0,
+        "T_opt": 28.0,
+        "sigma_T": 10.0,
+        "pH_opt": 5.0,
+        "sigma_pH": 1.2,
+        "k_t": 0.035,
+        "weight": 0.20,
+    },
 }
-
-FPSI_WEIGHTS = {
-    'carb': 0.40,    # Assumed weight
-    'protein': 0.20, # Assumed weight
-    'lipid': 0.10,   # Assumed weight
-    'inert': 0.30    # Assumed weight
+# FPSI_WEIGHTS = {
+#     'carb': 0.40,    # Assumed weight
+#     'protein': 0.20, # Assumed weight
+#     'lipid': 0.10,   # Assumed weight
+#     'inert': 0.30    # Assumed weight
+# }
+FPSI_WEIGHTS = { # team assumption
+    'carb': 0.25,
+    'protein': 0.25,
+    'lipid': 0.25,
+    'inert': 0.25
 }
 
 # ==========================================
@@ -92,4 +101,29 @@ DIGESTER_CALIBRATION = {
     # system constants
     'LHV_CH4': 35.8,
     'ETA_CHP': 0.35
+}
+
+# ==========================================
+# 5. STABILITY & RISK CONSTANTS
+# ==========================================
+RISK_THRESHOLDS = {
+    'vfa_crit': 6000.0,  # Critical VFA concentration (mg/L) - dr. bita's paper
+    'fan_crit': 600.0,   # Critical Free Ammonia Nitrogen (mg/L) - dr. bita's paper
+    # may need TAN
+    'ph_opt': 7.2,       # Optimum digester pH - ceiling for reactor's pH from dr. Bita
+    'olr_crit': 5.0      # Critical Organic Loading Rate (kg VS m^-3 d^-1) - dr. bita's paper
+}
+
+STABILITY_WEIGHTS = { # directly from dr. bita's code/paper
+    'w_vfa': 0.35,
+    'w_nh3': 0.25,
+    'w_ph': 0.20,
+    'w_olr': 0.20
+}
+
+# Baseline estimated concentrations for an uninhibited digester
+DIGESTER_CONDITIONS = {
+    'vfa_actual': 1500.0,
+    'fan_actual': 150.0,
+    'ph_actual': 7.1
 }
