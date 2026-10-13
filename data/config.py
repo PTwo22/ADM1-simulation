@@ -7,6 +7,13 @@ FW_FRACTIONS = { # baseline fractions given by Dr.Bita
     'lipid': 0.20,
     'inert': 0.05
 }
+# FW_FRACTIONS = { # S10
+#     'carb': 0.9206, # -0.18
+#     'protein': 0.0713,
+#     'lipid': 0.0072,
+#     'inert': 0.0009
+# }
+
 
 SCG_FRACTIONS = {
     'carb': 0.42,    # Assumed baseline SCG composition
@@ -14,7 +21,6 @@ SCG_FRACTIONS = {
     'lipid': 0.22,   # Assumed baseline SCG composition
     'inert': 0.20    # Assumed baseline SCG composition
 }
-
 # ==========================================
 # 2. METHANE POTENTIAL CONSTANTS (Nm^3 CH4 / kg VS)
 # ==========================================
@@ -90,7 +96,11 @@ DIGESTER_BASELINES = {
         'carb': 0.85, 
         'protein': 0.75, 
         'lipid': 0.60, 
-        'inert': 0.05 
+        'inert': 0.05
+        # 'carb': 0.55, 
+        # 'protein': 0.55, 
+        # 'lipid': 0.55, 
+        # 'inert': 0.55 
     }
 }
 
