@@ -83,10 +83,11 @@ FPSI_WEIGHTS = { # team assumption
 # 4. DIGESTER BASELINES & CALIBRATION
 # ==========================================
 DIGESTER_BASELINES = {
-    'scod': 10000.0, # Assumed baseline soluble COD (mg/L)
-    'k_hyd': 0.25,   # Assumed baseline hydrolysis rate (d^-1)
-    'lag_phase': 3.0,# Assumed baseline lag phase (days)
-    'b_control': {   # Assumed baseline biodegradability factors
+    'scod': 18000.0, # from Dr. Bita's sim - ! VERIFY UNIT
+    'k_hyd': 0.25,   # from Dr. Bita's sim - baseline hydrolysis rate (d^-1)
+    'ch4_fraction_control': 0.60, # ! VERIFY - 0.50-0.70 range from dr. bita's paper 2.2.4. modelled CH4 fraction in raw biogas
+    'lag_phase': 3.0,# ! Assumed baseline lag phase (days)
+    'b_control': {   # ! Assumed baseline biodegradability factors
         'carb': 0.85, 
         'protein': 0.75, 
         'lipid': 0.60, 
@@ -95,9 +96,11 @@ DIGESTER_BASELINES = {
 }
 
 DIGESTER_CALIBRATION = {
-    'alpha_SCOD': 0.50,   # Assumed: FPSI to SCOD multiplier
+    'alpha_SCOD': 0.80,   # from Dr. Bita's sim
     'alpha_hyd': 0.30,    # Assumed: FPSI to hydrolysis rate multiplier
     'alpha_lambda': 0.20,  # Assumed: FPSI to lag phase reduction multiplier
+    'scod_conversion_factor': 0.15, # Assumed: How effectively FPSI converts particulate COD to SCOD
+    'purity_conversion_factor': 0.05, # Assumed - used for calculating CH4 purity, to be verified
     # system constants
     'LHV_CH4': 35.8,
     'ETA_CHP': 0.35

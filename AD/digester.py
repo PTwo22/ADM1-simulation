@@ -3,7 +3,7 @@ import numpy as np
 from data.config import *
 
 """
-Formulas presented in Digester class: 16, 19, 20, 21, 22, 23, 24, 26, [30, 31, 32], [33, 34, 35, 36, 37]
+Formulas presented in Digester class: 15, 16, 19, 20, 21, 22, 23, 24, 26, [30, 31, 32], [33, 34, 35, 36, 37]
 """
 
 class Digester:
@@ -25,6 +25,7 @@ class Digester:
         self.b_treated = self._calculate_treated_biodegradability()
         self.y_ch4_control = self._calculate_baseline_yield()
         self.y_ch4_treated = self._calculate_treated_yield()
+        self.biogas_profile = self._calculate_biogas_profile()
         
         self.yield_improvement = self._calculate_improvement(self.y_ch4_control, self.y_ch4_treated)
         self.energy = self._calculate_energy()
@@ -33,20 +34,24 @@ class Digester:
     def _calculate_modified_kinetics(self) -> Dict[str, float]:
         """calculates modified SCOD, hydrolysis rate, and lag phase"""
         fpsi = self.pretreatment.fpsi
+        scod_control = self.baselines['scod']
 
         # formula 16: SCOD_pretreated = SCOD_control * (1 + alpha_SCOD * FPSI)
         # where alpha_scod = calibration coefficient linking fungal pretreatment to SCOD increase
-        scod_treated = self.baselines['scod'] * (1.0 + (self.calib["alpha_SCOD"] * fpsi))
-        # formula 17: k_hyd_modified = k_hyd_base * (1 + alpha_hyd * FPSI)
+        scod_treated = scod_control * (1.0 + (self.calib["alpha_SCOD"] * fpsi))
+        # formul 15: SCOD increase percentage
+        scod_increase_pct = ((scod_treated - scod_control) / scod_control) * 100.0
+
+        # formula 19: k_hyd_modified = k_hyd_base * (1 + alpha_hyd * FPSI)
         k_hyd_modified = self.baselines['k_hyd'] * (1.0 + (self.calib["alpha_hyd"] * fpsi))
         # formula 20: lambda_modified = lambda_base * (1 - alpha_lambda * FPSI)
         lag_modified = self.baselines['lag_phase'] * (1.0 - (self.calib["alpha_lambda"] * fpsi))
-        
         # ensure lag phase doesn't drop below zero numerically
         lag_modified = max(0.0, lag_modified)
 
         return {
             'scod_treated': scod_treated,
+            'scod_increase_pct': scod_increase_pct,
             'k_hyd_modified': k_hyd_modified,
             'lag_modified': lag_modified
         }
@@ -152,6 +157,25 @@ class Digester:
         return {
             "R_total": total_risk,
             "Stability": stability_score
+        }
+
+    def _calculate_biogas_profile(self) -> dict:
+        """calculates ch4 percentage and biogas volume"""
+        ch4_frac_control = self.baselines["ch4_fraction_control"]
+        purity_factor = self.calib["purity_conversion_factor"]
+        fpsi = self.pretreatment.fpsi
+
+        # formula 27*: methane purity calculation
+        # ! IMPORTANT: this is a workaround formula as in the formula list, there's nothing to calculate the volume of biogas - this would've been recursive as both formula 27 and 28 are dependent on each other
+        # original: P_CH4 = V_CH4 / V_biogas x 100
+        treated_ch4_fraction = ch4_frac_control + (purity_factor * fpsi)
+        
+        # formula 28: total biogas volume
+        biogas_volume = self.y_ch4_treated / treated_ch4_fraction
+        
+        return {
+            'ch4_fraction_pct': treated_ch4_fraction * 100.0,
+            'biogas_volume_m3': biogas_volume
         }
 
     def get_practical_yields(self, current_olr: float, config: dict) -> dict:

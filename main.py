@@ -118,9 +118,12 @@ def main():
             "Improvement (%)": round(digester.yield_improvement, 3),
             "Energy CH4 (MJ)": round(digester.energy['E_CH4_treated'], 3),
             "Electricity potential (MJ)": round(digester.energy['E_electricity'], 3),
-            "R_total": round(practical_data['R_total'], 3),
+            "R_total": round(practical_data['R_total'], 3), # total risk
             "Stability score": round(practical_data['Stability'], 3),
-            "Specific Yield (L/kgVS)": round(practical_data['Specific_Yield_L_kgVS'], 3)
+            "Specific Yield (L/kgVS)": round(practical_data['Specific_Yield_L_kgVS'], 3),
+            "SCOD increase (%)": round(digester.modified_kinetics["scod_increase_pct"], 3),
+            "Predicted CH4 fraction in raw biogas (%)": round(digester.biogas_profile['ch4_fraction_pct'], 3),
+            "Biogas volume (m3)": round(digester.biogas_profile['biogas_volume_m3'], 3),
         })
 
     # convert to Pandas DataFrame
