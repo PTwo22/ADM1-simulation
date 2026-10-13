@@ -50,10 +50,23 @@ def main():
     for scenario in scenarios:
         
         # back-calculate Feedstock Wet Mass based on daily OLR. 
-        m_vs_daily = scenario["olr"] * REACTOR_VOL
-        m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
+        # m_vs_daily = scenario["olr"] * REACTOR_VOL
+        # m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
+
+        m_wet_daily = 10.0
+        m_vs_daily = m_wet_daily * F_TS * F_VS_TS
+
+        # calculate the true OLR based on the fixed wet mass
+        # 10.0 * 0.25 * 0.90 = 2.25 kg VS per day
+        current_olr = m_vs_daily / REACTOR_VOL
         
-        # convert SCG percentage (e.g., 10.0) to fractions (e.g., 0.10) for the Feedstock class
+        # EXCEPTION: If the scenario explicitly calls for a high OLR
+        if scenario["olr"] > 2.5:
+            current_olr = scenario["olr"]
+            m_vs_daily = current_olr * REACTOR_VOL
+            m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
+            
+        # convert SCG percentage to fractions for the Feedstock class
         scg_fraction = scenario["scg"] / 100.0
         
         # map the universal enzyme dose from the scenario to all specific classes

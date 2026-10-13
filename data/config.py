@@ -66,19 +66,18 @@ PRETREATMENT_CONFIG = { # directly from dr. bita's code/paper
         "weight": 0.20,
     },
 }
-# FPSI_WEIGHTS = {
-#     'carb': 0.40,    # Assumed weight
-#     'protein': 0.20, # Assumed weight
-#     'lipid': 0.10,   # Assumed weight
-#     'inert': 0.30    # Assumed weight
-# }
-FPSI_WEIGHTS = { # team assumption
-    'carb': 0.25,
+FPSI_WEIGHTS = {
+    'carb': 0.35,
     'protein': 0.25,
-    'lipid': 0.25,
-    'inert': 0.25
+    'lipid': 0.20,
+    'inert': 0.20
 }
-
+# FPSI_WEIGHTS = { # team assumption
+#     'carb': 0.25,
+#     'protein': 0.25,
+#     'lipid': 0.25,
+#     'inert': 0.25
+# }
 # ==========================================
 # 4. DIGESTER BASELINES & CALIBRATION
 # ==========================================
@@ -86,7 +85,7 @@ DIGESTER_BASELINES = {
     'scod': 18000.0, # from Dr. Bita's sim - ! VERIFY UNIT
     'k_hyd': 0.25,   # from Dr. Bita's sim - baseline hydrolysis rate (d^-1)
     'ch4_fraction_control': 0.60, # ! VERIFY - 0.50-0.70 range from dr. bita's paper 2.2.4. modelled CH4 fraction in raw biogas
-    'lag_phase': 3.0,# ! Assumed baseline lag phase (days)
+    'lag_phase': 3.8,# from Dr. Bita's sim
     'b_control': {   # ! Assumed baseline biodegradability factors
         'carb': 0.85, 
         'protein': 0.75, 
