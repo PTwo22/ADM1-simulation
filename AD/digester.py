@@ -132,6 +132,7 @@ class Digester:
         thresholds = config["RISK_THRESHOLDS"]
         weights = config["STABILITY_WEIGHTS"]
         conditions = config["DIGESTER_CONDITIONS"]
+        calib = config["DIGESTER_CALIBRATION"]
 
         olr_scaling_factor = current_olr / 2.5 # NOTE 2.5 IS THE OLR FOR BASELINE (S1)
         base_fan = conditions["fan_actual"] * olr_scaling_factor
@@ -139,7 +140,8 @@ class Digester:
         # Formula 18: FAN_pretreated = FAN_control * (1 + alpha_FAN * A_protein)
         a_protein = self.pretreatment.A.get("protein", 0.0)
         # ! ASSUMED VALUE
-        fan_treated = base_fan * (1.0 + (0.20 * a_protein)) 
+        fan_treated = base_fan * (1.0 + (calib["alpha_FAN"] * a_protein))
+        # print(calib["alpha_FAN"])
         
         # formula 33 & 34: VFA and ammonia risk
         r_vfa = (conditions["vfa_actual"] * olr_scaling_factor) / thresholds['vfa_crit']

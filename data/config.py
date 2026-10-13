@@ -96,13 +96,19 @@ DIGESTER_BASELINES = {
 }
 
 DIGESTER_CALIBRATION = {
-    'alpha_SCOD': 0.80,   # from Dr. Bita's sim
-    'alpha_hyd': 0.30,    # Assumed: FPSI to hydrolysis rate multiplier
-    'alpha_lambda': 0.20,  # Assumed: FPSI to lag phase reduction multiplier
+    # from Dr. Bita's sim
+    'alpha_SCOD': 0.80,
+    "alpha_sugar": 1.20,
+    "alpha_FAN": 0.70,
+    "alpha_TAN": 0.20,
+    "alpha_hyd": 1.50,
+    "alpha_lambda": 0.55,
+
+    # assumed values
     'scod_conversion_factor': 0.15, # Assumed: How effectively FPSI converts particulate COD to SCOD
-    'purity_conversion_factor': 0.05, # Assumed - used for calculating CH4 purity, to be verified
+    'purity_conversion_factor': 0.05, # Assumed - used for calculating CH4 purity, to be verified/changed
     # system constants
-    'LHV_CH4': 35.8,
+    'LHV_CH4': 35.8, # from formula list
     'ETA_CHP': 0.35
 }
 

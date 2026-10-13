@@ -28,11 +28,7 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 ### CLasses
 #### Feedstock
 - **Description**: This is where all the materials/feedstocks amount lives before any AD or pretreatment occurs. Transforms operational inputs into volatile solid masses that the bacterial kinetics models require to compute methane generation.
-
-- **Inputs**: 
-
-- **Outputs**: 
-
+- **Presented Formulas**: 1, 2, 3, 4, 6, 7
 
 #### Pretreatment
 - **Description**: Translates physical operational conditions (temperature, pH, reaction time, and enzyme dosage) into a representation of the effectiveness of the degraded waste. Computes 4 specific response factors for each organic matter class.
@@ -48,6 +44,9 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 - **Inputs**: 
 
 - **Outputs**: methane yield, kinetic shifts, and energy recovery
+
+> [!NOTE] Presented formulas refer to the 'Required Formula List for the Simulation' given at the start of this internship
+
 
 
 ```
