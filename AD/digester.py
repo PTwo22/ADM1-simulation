@@ -1,167 +1,228 @@
-"""First-order CSTR screening model for anaerobic digestion.
+from typing import Dict
+import numpy as np
+from data.config import *
 
-This is an ADM1-inspired Phase 1 model, not a full ADM1 implementation. It
-separates the effect of pretreatment on degradation rate from its effect on
-the ultimately biodegradable fraction and preserves an explicit VS basis.
+"""
+Formulas presented in Digester class: 15, 16, 19, 20, 21, 22, 23, 24, 26, [30, 31, 32], [33, 34, 35, 36, 37]
 """
 
-from __future__ import annotations
-
-from typing import Dict, Mapping, Optional
-
-from AD.results import SimulationResult
-
-
 class Digester:
-    """Evaluate methane recovery from untreated or pretreated feedstock."""
-
-    organic_classes = ("carb", "protein", "lipid", "inert")
-
-    def __init__(self, feedstock, pretreatment, config: Mapping[str, object]) -> None:
+    """
+    Evaluates biomethane production (Section G), kinetic modifications (Sections E & F), 
+    and energy recovery (Section J) based on feedstock and pretreatment inputs.
+    """
+    def __init__(self, feedstock, pretreatment, config: Dict):
         self.feedstock = feedstock
         self.pretreatment = pretreatment
-        self.calib = dict(config["DIGESTER_CALIBRATION"])
-        self.baseline = dict(config["DIGESTER_BASELINE"])
-        self.bmp_constants = dict(config["BMP_CONSTANTS"])
-        self.system = dict(config["SYSTEM_CONSTANTS"])
-        self._validate_config()
 
-    def _validate_config(self) -> None:
-        if self.baseline["hrt_d"] <= 0:
-            raise ValueError("HRT must be greater than zero")
-        if self.baseline["olr_kg_vs_per_m3_d"] < 0:
-            raise ValueError("OLR cannot be negative")
-        methane_fraction = self.baseline["methane_fraction"]
-        if not 0.0 < methane_fraction <= 1.0:
-            raise ValueError("Methane fraction must be in the interval (0, 1]")
-        if self.system["lhv_ch4_mj_per_nm3"] <= 0:
-            raise ValueError("Methane lower heating value must be positive")
-        efficiency = self.system["chp_electrical_efficiency"]
-        if not 0.0 <= efficiency <= 1.0:
-            raise ValueError("CHP electrical efficiency must be between zero and one")
+        self.calib = config["DIGESTER_CALIBRATION"]
+        self.baselines = config["DIGESTER_BASELINES"]
+        self.bmp_constants = config["BMP_CONSTANTS"]
 
-        for name in self.organic_classes:
-            if name not in self.baseline["hydrolysis_rates_per_d"]:
-                raise ValueError(f"Missing hydrolysis rate for {name}")
-            if name not in self.baseline["biodegradability"]:
-                raise ValueError(f"Missing biodegradability for {name}")
-            if self.baseline["hydrolysis_rates_per_d"][name] < 0:
-                raise ValueError("Hydrolysis rates cannot be negative")
-            biodegradability = self.baseline["biodegradability"][name]
-            if not 0.0 <= biodegradability <= 1.0:
-                raise ValueError("Biodegradability values must be between zero and one")
+        self.organic_classes = ["carb", "protein", "lipid", "inert"]
 
-    def _alpha_hyd(self, name: str) -> float:
-        value = self.calib["alpha_hyd"]
-        if isinstance(value, Mapping):
-            return float(value.get(name, 0.0))
-        return float(value)
+        self.modified_kinetics = self._calculate_modified_kinetics()
+        self.b_treated = self._calculate_treated_biodegradability()
+        self.y_ch4_control = self._calculate_baseline_yield()
+        self.y_ch4_treated = self._calculate_treated_yield()
+        self.biogas_profile = self._calculate_biogas_profile()
+        
+        self.yield_improvement = self._calculate_improvement(self.y_ch4_control, self.y_ch4_treated)
+        self.energy = self._calculate_energy()
+
 
     def _calculate_modified_kinetics(self) -> Dict[str, float]:
-        """Calculate substrate-specific hydrolysis constants in d-1."""
-        rates: Dict[str, float] = {}
-        for name in self.organic_classes:
-            base_rate = float(self.baseline["hydrolysis_rates_per_d"][name])
-            effectiveness = float(self.pretreatment.A.get(name, 0.0))
-            rates[name] = base_rate * (1.0 + self._alpha_hyd(name) * effectiveness)
-        return rates
+        """calculates modified SCOD, hydrolysis rate, and lag phase"""
+        fpsi = self.pretreatment.fpsi
+        scod_control = self.baselines['scod']
 
-    def _calculate_treated_biodegradability(self) -> Dict[str, float]:
-        """Increase accessible fraction without allowing values above one."""
-        treated: Dict[str, float] = {}
-        for name in self.organic_classes:
-            control = float(self.baseline["biodegradability"][name])
-            if name == "inert":
-                treated[name] = control
-                continue
-            effectiveness = float(self.pretreatment.A.get(name, 0.0))
-            treated[name] = min(1.0, control + (1.0 - control) * effectiveness)
-        return treated
+        # formula 16: SCOD_pretreated = SCOD_control * (1 + alpha_SCOD * FPSI)
+        # where alpha_scod = calibration coefficient linking fungal pretreatment to SCOD increase
+        scod_treated = scod_control * (1.0 + (self.calib["alpha_SCOD"] * fpsi))
+        # formul 15: SCOD increase percentage
+        scod_increase_pct = ((scod_treated - scod_control) / scod_control) * 100.0
 
-    def _cstr_conversion(self, rate_per_d: float) -> float:
-        """Return first-order steady-state CSTR conversion at configured HRT."""
-        rate_retention = rate_per_d * float(self.baseline["hrt_d"])
-        return rate_retention / (1.0 + rate_retention) if rate_retention > 0 else 0.0
+        # formula 19: k_hyd_modified = k_hyd_base * (1 + alpha_hyd * FPSI)
+        k_hyd_modified = self.baselines['k_hyd'] * (1.0 + (self.calib["alpha_hyd"] * fpsi))
+        # formula 20: lambda_modified = lambda_base * (1 - alpha_lambda * FPSI)
+        lag_modified = self.baselines['lag_phase'] * (1.0 - (self.calib["alpha_lambda"] * fpsi))
+        # ensure lag phase doesn't drop below zero numerically
+        lag_modified = max(0.0, lag_modified)
 
-    def _yield_from(
-        self,
-        rates: Mapping[str, float],
-        biodegradability: Mapping[str, float],
-    ) -> float:
-        methane_yield = 0.0
-        for name in self.organic_classes:
-            methane_yield += (
-                self.feedstock.mixed_fractions[name]
-                * float(self.bmp_constants.get(name, 0.0))
-                * float(biodegradability[name])
-                * self._cstr_conversion(float(rates[name]))
-            )
-        return methane_yield
-
-    def _calculate_baseline_yield(self) -> float:
-        return self._yield_from(
-            self.baseline["hydrolysis_rates_per_d"],
-            self.baseline["biodegradability"],
-        )
-
-    def _calculate_treated_yield(self) -> float:
-        return self._yield_from(
-            self._calculate_modified_kinetics(),
-            self._calculate_treated_biodegradability(),
-        )
-
-    @staticmethod
-    def _calculate_improvement(control: float, treated: float) -> float:
-        if control <= 0:
-            return 0.0
-        return (treated - control) / control * 100.0
-
-    def _calculate_energy(self, methane_rate: float) -> Dict[str, float]:
-        energy_mj = methane_rate * float(self.system["lhv_ch4_mj_per_nm3"])
-        electricity_kwh = (
-            energy_mj * float(self.system["chp_electrical_efficiency"]) / 3.6
-        )
         return {
-            "energy_mj_per_m3_d": energy_mj,
-            "electricity_kwh_per_m3_d": electricity_kwh,
+            'scod_treated': scod_treated,
+            'scod_increase_pct': scod_increase_pct,
+            'k_hyd_modified': k_hyd_modified,
+            'lag_modified': lag_modified
         }
 
-    def simulate(
-        self,
-        scenario: str,
-        control_yield: Optional[float] = None,
-    ) -> SimulationResult:
-        """Run the screening calculation and return a structured result."""
-        modified_rates = self._calculate_modified_kinetics()
-        treated_biodegradability = self._calculate_treated_biodegradability()
-        methane_yield = self._yield_from(modified_rates, treated_biodegradability)
-        baseline_yield = self._calculate_baseline_yield()
-        reference_yield = baseline_yield if control_yield is None else control_yield
-        methane_rate = methane_yield * float(self.baseline["olr_kg_vs_per_m3_d"])
-        energy = self._calculate_energy(methane_rate)
 
-        return SimulationResult(
-            scenario=scenario,
-            fpsi=float(self.pretreatment.fpsi),
-            theoretical_bmp_nm3_per_kg_vs=self.feedstock.calculate_theoretical_bmp(
-                self.bmp_constants
-            ),
-            methane_yield_nm3_per_kg_vs=methane_yield,
-            methane_rate_nm3_per_m3_d=methane_rate,
-            methane_volume_nm3_feed_basis=methane_yield * self.feedstock.m_vs,
-            raw_biogas_rate_nm3_per_m3_d=(
-                methane_rate / float(self.baseline["methane_fraction"])
-            ),
-            energy_mj_per_m3_d=energy["energy_mj_per_m3_d"],
-            electricity_kwh_per_m3_d=energy["electricity_kwh_per_m3_d"],
-            improvement_pct_vs_control=self._calculate_improvement(
-                reference_yield, methane_yield
-            ),
-            hydrolysis_rates_per_d=modified_rates,
-            biodegradability=treated_biodegradability,
-            conversion={
-                name: self._cstr_conversion(modified_rates[name])
-                for name in self.organic_classes
-            },
-            mass_balance_error_kg_vs=self.feedstock.mass_balance_error_kg_vs,
-        )
+    def _calculate_treated_biodegradability(self) -> Dict[str, float]:
+        """calculates biodegradability after fungal pretreatment (if each substrate class i)"""
+        
+        b_treated = {}
+        for i in self.organic_classes:
+            b_control = self.baselines["b_control"].get(i, 0.0)
+            A_i = self.pretreatment.A.get(i, 0.0)
+
+            # formula 21: B_{i,treated} = B_{i,control} + (1 - B_{i,control}) * A_i
+            b_treated[i] = b_control + ((1.0 - b_control) * A_i)
+
+        return b_treated
+
+       
+    def _calculate_baseline_yield(self) -> float:
+        """calculate baseline methane yield without pretreatment"""
+        y_control = 0.0
+        for i in self.organic_classes:
+            M_i = self.feedstock.component_masses.get(i, 0.0)
+            BMP_i = self.bmp_constants.get(i, 0.0)
+            B_control = self.baselines["b_control"].get(i, 0.0) # * NO PRETREATMENT APPLIED
+            
+            # formula 22(a): Y_CH4_i = M_i * BMP_i * B_i and formula 23
+            y_control += (M_i * BMP_i * B_control)
+            
+        return y_control
+
+    def _calculate_treated_yield(self) -> float:
+        """calculates total methane yield after pretreatment"""
+        y_treated = 0.0
+        for i in self.organic_classes:
+            M_i = self.feedstock.component_masses.get(i, 0.0)
+            BMP_i = self.bmp_constants.get(i, 0.0)
+            B_treated = self.b_treated.get(i, 0.0) # difference
+
+            # formula 22(b): Y_CH4_i = M_i * BMP_i * B_i and formula 23
+            y_treated += (M_i * BMP_i * B_treated)
+            
+        return y_treated
+
+    def _calculate_improvement(self, control: float, treated: float) -> float:
+        """calculates mathane improvement from fungal pretreatment (will likely be the same for other treatment types too)"""
+        if control == 0:
+            return 0.0
+
+        # formula 24: Improvement(%) = ((Y_treated - Y_control) / Y_control) * 100
+        return ((treated - control) / control) * 100.0
+
+    def _calculate_energy(self) -> Dict[str, float]:
+        """calculate energy recovery and electricity potential - for BOTH control and treated"""
+        lhv = self.calib["LHV_CH4"] # 35.8 MJ/m^3 - constant
+        eta = self.calib["ETA_CHP"] # n_CHP = electrical conversion efficiency
+
+        # formula 30: E_CH4 = V_CH4 * LHV_CH4
+        # ! IMPORTANT: MAKE SURE THIS IS IN CUBIC METRES (m^3), else divide by 1000
+        e_control = self.y_ch4_control * lhv
+        e_treated = self.y_ch4_treated * lhv
+
+        # formula 31: E_electricity = E_CH4 * n_CHP
+        e_electricity_treated = e_treated * eta
+        # formula 32: Energy Improvement (%) = ((E_treated - E_control) / E_control) * 100
+        energy_improvement = self._calculate_improvement(e_control, e_treated)
+        
+        return {
+            "E_CH4_control": e_control,
+            "E_CH4_treated": e_treated,
+            "E_electricity": e_electricity_treated,
+            "improvement_percent": energy_improvement
+        }
+
+    def _calculate_stability_risks(self, current_olr: float, config: dict) -> dict:
+        """calculates stability and inhibition indicators (formulas 18, 33-37)"""
+        thresholds = config["RISK_THRESHOLDS"]
+        weights = config["STABILITY_WEIGHTS"]
+        conditions = config["DIGESTER_CONDITIONS"]
+        calib = config["DIGESTER_CALIBRATION"]
+
+        olr_scaling_factor = current_olr / 2.5 # NOTE 2.5 IS THE OLR FOR BASELINE (S1)
+        base_fan = conditions["fan_actual"] * olr_scaling_factor
+        
+        # Formula 18: FAN_pretreated = FAN_control * (1 + alpha_FAN * A_protein)
+        a_protein = self.pretreatment.A.get("protein", 0.0)
+        # ! ASSUMED VALUE
+        fan_treated = base_fan * (1.0 + (calib["alpha_FAN"] * a_protein))
+        # print(calib["alpha_FAN"])
+        
+        # formula 33 & 34: VFA and ammonia risk
+        r_vfa = (conditions["vfa_actual"] * olr_scaling_factor) / thresholds['vfa_crit']
+        r_nh3 = fan_treated / thresholds["fan_crit"]
+        # formula 35 & 36: pH and OLR risk
+        r_ph = abs(conditions["ph_actual"] - thresholds["ph_opt"]) / thresholds["ph_opt"]
+        r_olr = current_olr / thresholds["olr_crit"]
+        
+        # formula 37: combined stability score
+        total_risk = (weights['w_vfa'] * r_vfa) + (weights['w_nh3'] * r_nh3) + (weights['w_ph'] * r_ph) + (weights['w_olr'] * r_olr)
+                     
+        # stability must be constrained between 0 and 1
+        stability_score = max(0.0, min(1.0, 1.0 - total_risk))
+        
+        return {
+            "R_total": total_risk,
+            "Stability": stability_score
+        }
+
+    def _calculate_biogas_profile(self) -> dict:
+        """calculates ch4 percentage and biogas volume"""
+        ch4_frac_control = self.baselines["ch4_fraction_control"]
+        purity_factor = self.calib["purity_conversion_factor"]
+        fpsi = self.pretreatment.fpsi
+
+        # formula 27*: methane purity calculation
+        # ! IMPORTANT: this is a workaround formula as in the formula list, there's nothing to calculate the volume of biogas - this would've been recursive as both formula 27 and 28 are dependent on each other
+        # original: P_CH4 = V_CH4 / V_biogas x 100
+
+        # 0.58 + 0.08 FPSI − 
+        # 0.05 R_total − 0.03
+        # f_SCG; clipped 0.50–
+        # 0.70
+
+        treated_ch4_fraction = ch4_frac_control + (purity_factor * fpsi)
+        
+        # formula 28: total biogas volume
+        biogas_volume = self.y_ch4_treated / treated_ch4_fraction
+        
+        return {
+            'ch4_fraction_pct': treated_ch4_fraction * 100.0,
+            'biogas_volume_m3': biogas_volume
+        }
+
+    def get_practical_yields(self, current_olr: float, config: dict) -> dict:
+        """applies the stability penalty to calculate practical yields and specific efficiency - no formula applies"""
+        risks = self._calculate_stability_risks(current_olr, config)
+        # apply the stability inhibition multiplier to the theoretical treated yield
+        practical_yield_nm3 = self.y_ch4_treated * risks['Stability']
+        
+        # calculate specific yield: (Liters of CH4) / (kg VS added)
+        # 1 Nm3 = 1000 Liters - current_olr represents the kg VS added per m3.
+        specific_yield_L_kgvs = (practical_yield_nm3 * 1000) / current_olr
+        
+        return {
+            "R_total": risks["R_total"],
+            "Stability": risks["Stability"],
+            "Practical_Yield_Nm3": practical_yield_nm3,
+            "Specific_Yield_L_kgVS": specific_yield_L_kgvs
+        }
+
+    def calculate_gompertz_curve(self, time_array: np.ndarray, is_treated: bool = True) -> np.ndarray:
+        """calculates Modified Gompertz model for cumulative methane over time"""
+        # select parameters based on whether we are plotting the control or treated curve
+        # ! NOTE: LAG AND KINETICS ARE ASSUMED AS OF RIGHT NOW
+        if is_treated:
+            ch4_max = self.y_ch4_treated
+            lag = self.modified_kinetics['lag_modified'] # lag phase
+            k_hyd = self.modified_kinetics['k_hyd_modified']
+        else:
+            ch4_max = self.y_ch4_control
+            lag = self.baselines['lag_phase']
+            k_hyd = self.baselines['k_hyd']
+            
+        # approximate R_max (Maximum production rate) if not explicitly defined in config
+        r_max = (ch4_max * k_hyd) / np.e 
+        # formula 26: CH4(t) = CH4,max * exp{-exp[(R_max * e / CH4,max) * (lambda - t) + 1]}
+        exponent_term = ((r_max * np.e) / ch4_max) * (lag - time_array) + 1.0
+        cumulative_methane = ch4_max * np.exp(-np.exp(exponent_term))
+        
+        # zero out any negative initial values caused by the lag phase mathematics
+        cumulative_methane = np.maximum(0, cumulative_methane)
+        
+        return cumulative_methane

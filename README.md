@@ -1,50 +1,34 @@
 # ADM1 Simulation
 **Project: Waste-to-Energy Simulation: Biogas Production from Food Waste Using Python**
-```
+
 feed composition → fungal pretreatment → solubilisation/hydrolysis → methane → energy →
 risk
+
+## Instructions
+1. Install all necessary dependencies
+```bash
+# Windows instructions
+python -m venv env
+.\env\Scripts\activate
+pip install -r requirements.txt
 ```
-## What it currently does
 
-The model compares:
-- **A — No pretreatment**
-- **B — Commercial fungal-enzyme pretreatment**
-
-It calculates:
-
-- feedstock TS and VS;
-- fungal pretreatment effectiveness (FPSI);
-- methane yield and production rate;
-- methane energy;
-- VS mass balance.
-
-This is a **Phase 1 screening model**, not the complete ADM1 simulation.
-Scenarios C–E, dynamic ADM1 reactions, pH, VFA, ammonia, costs and optimisation
-still need to be added.
+Optional: Install Better Comments extension for VSCode for better reading of codebase
+```
+Name: Better Comments
+Id: aaron-bond.better-comments
+Description: Improve your code commenting by annotating with alert, informational, TODOs, and more!
+Version: 3.0.2
+Publisher: Aaron Bond
+VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-bond.better-comments
+```
 
 ## Structure
 ![High level diagram](high-level-diagram.png)
-
-```
-/ADM1-simulation
-├── AD/
-├── data/
-├── notebook/
-├── pretreatment/
-├── main.py
-├── README.md
-├── .gitignore
-└── requirements.txt
-```
-
 ### CLasses
 #### Feedstock
 - **Description**: This is where all the materials/feedstocks amount lives before any AD or pretreatment occurs. Transforms operational inputs into volatile solid masses that the bacterial kinetics models require to compute methane generation.
-
-- **Inputs**: 
-
-- **Outputs**: 
-
+- **Presented Formulas**: 1, 2, 3, 4, 6, 7
 
 #### Pretreatment
 - **Description**: Translates physical operational conditions (temperature, pH, reaction time, and enzyme dosage) into a representation of the effectiveness of the degraded waste. Computes 4 specific response factors for each organic matter class.
@@ -61,35 +45,17 @@ still need to be added.
 
 - **Outputs**: methane yield, kinetic shifts, and energy recovery
 
-### Main files
+> [!NOTE] Presented formulas refer to the 'Required Formula List for the Simulation' given at the start of this internship
 
-- `main.py` — runs Scenarios A and B.
-- `AD/feedstock.py` — calculates feedstock composition.
-- `AD/digester.py` — calculates methane and energy.
-- `pretreatment/pretreatment.py` — calculates fungal pretreatment effects.
-- `data/config.py` — contains the input values used by the model.
-- `tests/test_model.py` — contains the automated tests.
 
-## Instructions
 
-1. Run the main program
-```bash
-python3 main.py
 ```
-
-2. Run the tests
-```bash
-python3 -m unittest discover -s tests -v
+/ADM1-simulation
+├── AD/
+├── data/
+├── notebook/
+├── pretreatment/
+├── main.py
+├── README.md
+└── requirements.txt
 ```
-
-Successful tests finish with:
-
-```text
-Ran 11 tests
-OK
-```
-
-## Important note
-
-The parameters are initial values taken from the supplied CSV datasets. Some
-values are provisional and will need sensitivity analysis and calibration.
