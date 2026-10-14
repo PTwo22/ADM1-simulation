@@ -170,6 +170,12 @@ class Digester:
         # formula 27*: methane purity calculation
         # ! IMPORTANT: this is a workaround formula as in the formula list, there's nothing to calculate the volume of biogas - this would've been recursive as both formula 27 and 28 are dependent on each other
         # original: P_CH4 = V_CH4 / V_biogas x 100
+
+        # 0.58 + 0.08 FPSI − 
+        # 0.05 R_total − 0.03
+        # f_SCG; clipped 0.50–
+        # 0.70
+
         treated_ch4_fraction = ch4_frac_control + (purity_factor * fpsi)
         
         # formula 28: total biogas volume

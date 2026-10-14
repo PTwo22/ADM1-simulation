@@ -5,7 +5,7 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
     """Generates and saves all simulation visualisations to the designated output directory."""
     os.makedirs(output_dir, exist_ok=True)
 
-    # 1. Baseline vs. Treated Methane Yield Bar Chart
+    # baseline vs. Treated Methane Yield Bar Chart
     plt.figure(figsize=(14, 7))
     bar_width = 0.35
     indices = range(len(df_results))
@@ -27,7 +27,7 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
     plt.close()
     print(f"[+] Visualisation successfully saved to {plot1_path}")
 
-    # 2. Methane Improvement Percentage
+    # methane Improvement Percentage
     plt.figure(figsize=(12, 6))
     scenarios_treated = df_results["Scenario ID"][1:]
     improvement_values = df_results["Improvement (%)"][1:]
@@ -47,7 +47,7 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
     plt.close()
     print(f"[+] Visualisation successfully saved to {plot2_path}")
 
-    # 3. Gompertz Curves (Time Series)
+    # Gompertz Curves (Time Series)
     plt.figure(figsize=(12, 7))
     for scenario_id, data in scenario_curves.items():
         plt.plot(data["time"], data["methane"], label=f'Scenario {scenario_id}', linewidth=2)
@@ -63,7 +63,7 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
     plt.close()
     print(f"[+] Visualisation successfully saved to {plot3_path}")
 
-    # 4. Specific Methane Yield (L/kgVS)
+    # specific methane yield (L/kgVS)
     plt.figure(figsize=(12, 6))
     scenarios_all = df_results["Scenario ID"]
     specific_yields = df_results["Specific Yield (L/kgVS)"]
@@ -75,10 +75,44 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
 
     plt.xlabel('Scenario ID', fontsize=12, fontweight='bold')
     plt.ylabel('Specific Yield (L/kgVS)', fontsize=12, fontweight='bold')
-    plt.title('Specific Methane Yield by Scenario (Factoring Risk & OLR)', fontsize=14, fontweight='bold')
+    plt.title('Specific Methane Yield by Scenario (Factoring Stability & OLR)', fontsize=14, fontweight='bold')
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     
     plot4_path = os.path.join(output_dir, "specific_methane_yield.png")
     plt.savefig(plot4_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[+] Visualisation successfully saved to {plot4_path}")
+
+    # practical yield improvement (stability & OLR adjusted)
+    plt.figure(figsize=(12, 6))
+    
+    # extract the baseline specific yield (assumed to be the first row, S1)
+    baseline_specific_yield = df_results["Specific Yield (L/kgVS)"].iloc[0]
+    # isolate treated scenarios (skip S1)
+    scenarios_treated = df_results["Scenario ID"][1:]
+    treated_specific_yields = df_results["Specific Yield (L/kgVS)"][1:]
+    # calculate practical percentage improvement over S1
+    practical_improvement = ((treated_specific_yields - baseline_specific_yield) / baseline_specific_yield) * 100.0
+    # color bars green if positive, red if negative
+    colors = ['#2ca02c' if val >= 0 else '#d62728' for val in practical_improvement]
+    
+    bars = plt.bar(scenarios_treated, practical_improvement, color=colors, edgecolor='black', width=0.5)
+    
+    for bar in bars:
+        yval = bar.get_height()
+        # Adjust text placement based on whether the bar goes up or down
+        offset = 1.0 if yval >= 0 else -2.5
+        va = 'bottom' if yval >= 0 else 'top'
+        plt.text(bar.get_x() + bar.get_width()/2, yval + offset, f'{yval:.1f}%', ha='center', va=va, fontweight='bold', fontsize=9)
+
+    plt.axhline(0, color='black', linewidth=1.2) # baseline reference line
+    plt.xlabel('Scenario ID', fontsize=12, fontweight='bold')
+    plt.ylabel('Practical Improvement Over Baseline (%)', fontsize=12, fontweight='bold')
+    plt.title('Stability-Adjusted Specific Yield Improvement (vs S1)', fontsize=14, fontweight='bold')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plot5_path = os.path.join(output_dir, "practical_yield_improvement.png")
+    plt.savefig(plot5_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[+] Visualization successfully saved to {plot5_path}")

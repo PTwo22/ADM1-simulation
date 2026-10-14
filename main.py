@@ -33,6 +33,9 @@ scenarios = [
     {"id": "S9", "description": "Moderate pretreatment + 10% SCG + high OLR", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 4.5, "hrt": 20},
     # {"id": "S10", "description": "Carbohydrate-rich food-waste composition.", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
 ]
+# scenarios_new = [
+#     {"id": "S10", "description": "Carbohydrate-rich food-waste composition.", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
+# ]
 
 # Global/Environmental Assumptions for the pipeline
 F_TS = 0.25          # published sim variable

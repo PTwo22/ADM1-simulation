@@ -13,13 +13,22 @@ FW_FRACTIONS = { # baseline fractions given by Dr.Bita
 #     'lipid': 0.0072,
 #     'inert': 0.0009
 # }
+# # FW_FRACTIONS = { # S11
+#     'carb': 0.,
+#     'protein': 0.3774,
+#     'lipid': 0.,
+#     'inert': 0.
+# }
+# FW_FRACTIONS = {
+
+# }
 
 
-SCG_FRACTIONS = {
-    'carb': 0.42,    # Assumed baseline SCG composition
-    'protein': 0.16, # Assumed baseline SCG composition
-    'lipid': 0.22,   # Assumed baseline SCG composition
-    'inert': 0.20    # Assumed baseline SCG composition
+SCG_FRACTIONS = { # other sim
+    'carb': 0.42,
+    'protein': 0.16,
+    'lipid': 0.22,
+    'inert': 0.20
 }
 # ==========================================
 # 2. METHANE POTENTIAL CONSTANTS (Nm^3 CH4 / kg VS)
@@ -78,6 +87,12 @@ FPSI_WEIGHTS = {
     'lipid': 0.20,
     'inert': 0.20
 }
+# enzyme_split = {
+#     "carb": 0.40,
+#     "protein": 0.30,
+#     "lipid": 0.20,
+#     "SCG": 0.10,
+# }
 # FPSI_WEIGHTS = { # team assumption
 #     'carb': 0.25,
 #     'protein': 0.25,
@@ -93,14 +108,14 @@ DIGESTER_BASELINES = {
     'ch4_fraction_control': 0.60, # ! VERIFY - 0.50-0.70 range from dr. bita's paper 2.2.4. modelled CH4 fraction in raw biogas
     'lag_phase': 3.8,# from Dr. Bita's sim
     'b_control': {   # ! Assumed baseline biodegradability factors
-        'carb': 0.85, 
-        'protein': 0.75, 
-        'lipid': 0.60, 
-        'inert': 0.05
-        # 'carb': 0.55, 
-        # 'protein': 0.55, 
-        # 'lipid': 0.55, 
-        # 'inert': 0.55 
+        # 'carb': 0.85, 
+        # 'protein': 0.75, 
+        # 'lipid': 0.60, 
+        # 'inert': 0.05
+        'carb': 0.72, 
+        'protein': 0.72, 
+        'lipid': 0.72, 
+        'inert': 0.72 
     }
 }
 
