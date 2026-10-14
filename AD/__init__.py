@@ -1,5 +1,7 @@
-"""Shared feedstock input used by the dynamic ADM1 model."""
+"""Anaerobic-digestion screening model."""
 
+from .digester import Digester
 from .feedstock import Feedstock
+from .results import SimulationResult
 
-__all__ = ["Feedstock"]
+__all__ = ["Digester", "Feedstock", "SimulationResult"]

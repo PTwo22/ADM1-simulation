@@ -47,17 +47,12 @@ class Pretreatment:
         self.fpsi = self._calculate_fpsi()
 
     def _validate_inputs(self) -> None:
-        if not all(
-            math.isfinite(value)
-            for value in (self.temp_pre, self.ph_pre, self.time_pre)
-        ):
-            raise ValueError("Pretreatment temperature, pH and time must be finite")
         if self.time_pre < 0:
             raise ValueError("Pretreatment time cannot be negative")
-        if any(not math.isfinite(value) or value < 0 for value in self.enzyme_doses.values()):
-            raise ValueError("Enzyme doses must be finite and non-negative")
-        if any(not math.isfinite(value) or value < 0 for value in self.weights.values()):
-            raise ValueError("FPSI weights must be finite and non-negative")
+        if any(value < 0 for value in self.enzyme_doses.values()):
+            raise ValueError("Enzyme doses cannot be negative")
+        if any(value < 0 for value in self.weights.values()):
+            raise ValueError("FPSI weights cannot be negative")
         if not math.isclose(sum(self.weights.values()), 1.0, abs_tol=1e-9):
             raise ValueError("FPSI weights must sum to 1.0")
 
@@ -68,11 +63,6 @@ class Pretreatment:
             missing = required - set(self.config[name])
             if missing:
                 raise ValueError(f"Pretreatment configuration for {name} is missing {sorted(missing)}")
-            if any(
-                not math.isfinite(float(self.config[name][field]))
-                for field in required
-            ):
-                raise ValueError("Pretreatment configuration values must be finite")
             if self.config[name]["K_E"] < 0:
                 raise ValueError("K_E cannot be negative")
             if self.config[name]["sigma_T"] <= 0 or self.config[name]["sigma_pH"] <= 0:

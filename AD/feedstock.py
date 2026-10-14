@@ -45,11 +45,6 @@ class Feedstock:
         return r_scg_to_fw / (1.0 + r_scg_to_fw)
 
     def _validate_inputs(self) -> None:
-        if not all(
-            math.isfinite(value)
-            for value in (self.m_wet, self.f_ts, self.f_vs_ts, self.f_scg)
-        ):
-            raise ValueError("Feedstock inputs must be finite")
         if self.m_wet <= 0:
             raise ValueError("Wet feed mass must be greater than zero")
         for name, value in (("TS fraction", self.f_ts), ("VS/TS fraction", self.f_vs_ts)):
@@ -65,11 +60,8 @@ class Feedstock:
             missing = set(self.organic_classes) - set(fractions)
             if missing:
                 raise ValueError(f"{label} fractions are missing: {sorted(missing)}")
-            if any(
-                not math.isfinite(float(fractions[name])) or fractions[name] < 0
-                for name in self.organic_classes
-            ):
-                raise ValueError(f"{label} fractions must be finite and non-negative")
+            if any(fractions[name] < 0 for name in self.organic_classes):
+                raise ValueError(f"{label} fractions cannot be negative")
             if not math.isclose(
                 sum(fractions[name] for name in self.organic_classes),
                 1.0,
