@@ -1,76 +1,104 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Dict, Tuple
-import math
-import os
+"""Feedstock composition and mass-basis calculations."""
 
-"""
-Formulas presented in Feedstock class: 1, 2, 3, 4, 6, 7
-"""
+from __future__ import annotations
+
+import math
+from typing import Dict, Mapping, Tuple
+
 
 class Feedstock:
-    """
-    Defines what and how much of each feedstock exists.
-    Returns component masses, theoretical BMP mix
-    """
-    def __init__(self, m_wet: float, f_ts: float, f_vs_ts: float, f_scg: float, 
-                 fw_fractions: Dict[str, float], scg_fractions: Dict[str, float]):
-        
-        self.m_wet = m_wet                  # wet mass of food waste 
-        self.f_ts = f_ts                    # total solids fraction
-        self.f_vs_ts = f_vs_ts              # volatile solids fraction of total solids
-        self.f_scg = f_scg                  # SCG ratio, for example 0, 0.10, 0.20 or 0.30 
-        self.fw_fractions = fw_fractions    # organic-matter fraction - Dict for carb, protein, lipid, and inert
-        self.scg_fractions = scg_fractions  # builds composition of SCG 
+    """Represent a food-waste/SCG mixture on a volatile-solids basis.
 
-        self.organic_classes = ["carb", "protein", "lipid", "inert"]
-        self._validate_fractions()
+    ``f_scg`` is the fraction of total mixture VS supplied by spent coffee
+    grounds. Use :meth:`scg_fraction_from_fw_ratio` when the literature value
+    is reported as kg SCG VS per kg food-waste VS.
+    """
 
-        self.m_ts, self.m_vs = self._calculate_solids() # returns total and volitile solids
+    organic_classes = ("carb", "protein", "lipid", "inert")
+
+    def __init__(
+        self,
+        m_wet: float,
+        f_ts: float,
+        f_vs_ts: float,
+        f_scg: float,
+        fw_fractions: Mapping[str, float],
+        scg_fractions: Mapping[str, float],
+    ) -> None:
+        self.m_wet = float(m_wet)
+        self.f_ts = float(f_ts)
+        self.f_vs_ts = float(f_vs_ts)
+        self.f_scg = float(f_scg)
+        self.fw_fractions = dict(fw_fractions)
+        self.scg_fractions = dict(scg_fractions)
+
+        self._validate_inputs()
+        self.m_ts, self.m_vs = self._calculate_solids()
         self.mixed_fractions = self._calculate_mixed_fractions()
-        self.component_masses = self._calculate_component_mass()
+        self.component_masses = self._calculate_component_masses()
 
-    def _validate_fractions(self) -> None:
-        """Formula: f_carb + f_protein + f_lipid + f_inert = 1"""
-        # NOTE add rel_tol=[value] for minor discrepecies
-        if not math.isclose(sum(self.fw_fractions.values()), 1.0, rel_tol=1e-5):
-            raise ValueError("Food Waste fractions must sum to 1.0")
-        if not math.isclose(sum(self.scg_fractions.values()), 1.0, rel_tol=1e-5):
-            raise ValueError("SCG fractions must sum to 1.0")
+    @staticmethod
+    def scg_fraction_from_fw_ratio(r_scg_to_fw: float) -> float:
+        """Convert ``SCG/FW`` VS ratio to the SCG fraction of total VS."""
+        if r_scg_to_fw < 0:
+            raise ValueError("SCG-to-food-waste ratio cannot be negative")
+        return r_scg_to_fw / (1.0 + r_scg_to_fw)
 
-    def _calculate_solids(self) -> None:
-        """gives back total solids (TS) and volitile solids (VS)"""
+    def _validate_inputs(self) -> None:
+        if self.m_wet <= 0:
+            raise ValueError("Wet feed mass must be greater than zero")
+        for name, value in (("TS fraction", self.f_ts), ("VS/TS fraction", self.f_vs_ts)):
+            if not 0.0 < value <= 1.0:
+                raise ValueError(f"{name} must be in the interval (0, 1]")
+        if not 0.0 <= self.f_scg <= 1.0:
+            raise ValueError("SCG fraction must be between zero and one")
+
+        for label, fractions in (
+            ("Food-waste", self.fw_fractions),
+            ("SCG", self.scg_fractions),
+        ):
+            missing = set(self.organic_classes) - set(fractions)
+            if missing:
+                raise ValueError(f"{label} fractions are missing: {sorted(missing)}")
+            if any(fractions[name] < 0 for name in self.organic_classes):
+                raise ValueError(f"{label} fractions cannot be negative")
+            if not math.isclose(
+                sum(fractions[name] for name in self.organic_classes),
+                1.0,
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            ):
+                raise ValueError(f"{label} fractions must sum to 1.0")
+
+    def _calculate_solids(self) -> Tuple[float, float]:
+        """Return total-solids and volatile-solids masses in kg."""
         m_ts = self.m_wet * self.f_ts
         m_vs = m_ts * self.f_vs_ts
         return m_ts, m_vs
 
-    def _calculate_mixed_fractions(self) -> None:
-        """gives back mixed substrate composition"""
-        mixed_dict = {}
-        for i in self.organic_classes:
-            f_i_fw = self.fw_fractions.get(i, 0.0) # get(key, default_value)
-            f_i_scg = self.scg_fractions.get(i, 0.0)
+    def _calculate_mixed_fractions(self) -> Dict[str, float]:
+        """Return mixture composition as fractions of total mixture VS."""
+        return {
+            name: (1.0 - self.f_scg) * self.fw_fractions[name]
+            + self.f_scg * self.scg_fractions[name]
+            for name in self.organic_classes
+        }
 
-            # Formula: f_{i,mix} = (1 - f_SCG)*f_{i,FW} + f_SCG * f_{i,SCG}
-            mixed_dict[i] = ((1.0 - self.f_scg) * f_i_fw) + (self.f_scg * f_i_scg)
+    def _calculate_component_masses(self) -> Dict[str, float]:
+        """Return the mass of each organic-matter class in kg VS."""
+        return {
+            name: self.m_vs * self.mixed_fractions[name]
+            for name in self.organic_classes
+        }
 
-        return mixed_dict
+    def calculate_theoretical_bmp(self, bmp_constants: Mapping[str, float]) -> float:
+        """Return theoretical methane potential in Nm3 CH4 per kg VS."""
+        return sum(
+            self.mixed_fractions[name] * float(bmp_constants[name])
+            for name in ("carb", "protein", "lipid")
+        )
 
-    def _calculate_component_mass(self) -> None:
-        """gives back mass of each organic-matter class"""
-        mass_dict = {}
-        for i in self.organic_classes:
-            mass_dict[i] = self.m_vs * self.mixed_fractions[i]
-
-        return mass_dict
-
-    def calculate_theoretical_bmp(self, bmp_constants: Dict[str, float]) -> float:
-        """gives back theoretical BMP from organic-matter classes"""
-        bmp_mix = 0.0
-        for i in ["carb", "protein", "lipid"]:
-            f_i = self.mixed_fractions.get(i, 0.0)
-            bmp_i = bmp_constants.get(i, 0.0)
-            bmp_mix += (f_i * bmp_i)
-
-        return bmp_mix
+    @property
+    def mass_balance_error_kg_vs(self) -> float:
+        """Absolute VS mass-balance residual for the feed representation."""
+        return abs(sum(self.component_masses.values()) - self.m_vs)
