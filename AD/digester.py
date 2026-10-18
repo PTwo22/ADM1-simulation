@@ -25,7 +25,8 @@ class Digester:
         self.b_treated = self._calculate_treated_biodegradability()
         self.y_ch4_control = self._calculate_baseline_yield()
         self.y_ch4_treated = self._calculate_treated_yield()
-        self.biogas_profile = self._calculate_biogas_profile()
+        # self.biogas_profile = self._calculate_biogas_profile()
+        self.biogas_profile = {}
         
         self.yield_improvement = self._calculate_improvement(self.y_ch4_control, self.y_ch4_treated)
         self.energy = self._calculate_energy()
@@ -161,29 +162,25 @@ class Digester:
             "Stability": stability_score
         }
 
-    def _calculate_biogas_profile(self) -> dict:
+    def _calculate_biogas_profile(self, r_total: float) -> dict:
         """calculates ch4 percentage and biogas volume"""
-        ch4_frac_control = self.baselines["ch4_fraction_control"]
-        purity_factor = self.calib["purity_conversion_factor"]
         fpsi = self.pretreatment.fpsi
+        f_scg = self.feedstock.mixture_ratios.get("SCG", 0.0)
 
-        # formula 27*: methane purity calculation
-        # ! IMPORTANT: this is a workaround formula as in the formula list, there's nothing to calculate the volume of biogas - this would've been recursive as both formula 27 and 28 are dependent on each other
-        # original: P_CH4 = V_CH4 / V_biogas x 100
-
-        # 0.58 + 0.08 FPSI − 
-        # 0.05 R_total − 0.03
-        # f_SCG; clipped 0.50–
-        # 0.70
-
-        treated_ch4_fraction = ch4_frac_control + (purity_factor * fpsi)
+        # formula 33
+        f_ch4 = 0.58 + (0.08 * fpsi) - (0.05 * r_total) - (0.03 * f_scg)
+        # constrain to the stated screening range (0.50 - 0.70)
+        f_ch4 = max(0.50, min(0.70, f_ch4))
         
-        # formula 28: total biogas volume
-        biogas_volume = self.y_ch4_treated / treated_ch4_fraction
+        # formula 35: total biogas volume
+        biogas_volume = self.y_ch4_treated / f_ch4
+        # formula 36: V_CO2
+        v_co2 = biogas_volume - self.y_ch4_treated
         
         return {
-            'ch4_fraction_pct': treated_ch4_fraction * 100.0,
-            'biogas_volume_m3': biogas_volume
+            'ch4_fraction_pct': f_ch4 * 100.0,
+            'biogas_volume_m3': biogas_volume,
+            'co2_volume_m3': v_co2
         }
 
     def get_practical_yields(self, current_olr: float, config: dict) -> dict:
@@ -195,6 +192,7 @@ class Digester:
         # calculate specific yield: (Liters of CH4) / (kg VS added)
         # 1 Nm3 = 1000 Liters - current_olr represents the kg VS added per m3.
         specific_yield_L_kgvs = (practical_yield_nm3 * 1000) / current_olr
+        self.biogas_profile = self._calculate_biogas_profile(risks['R_total'])
         
         return {
             "R_total": risks["R_total"],
