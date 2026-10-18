@@ -8,7 +8,7 @@ from AD.feedstock import Feedstock
 from pretreatment.pretreatment import Pretreatment
 from AD.digester import Digester
 
-from utils.visualisations import generate_all_plots
+from utils.visualisations import generate_all_plots, plot_composition_oat_comparison
 
 # create an output directory for CSVs and plots if it doesn't exist
 os.makedirs("output", exist_ok=True)
@@ -21,26 +21,41 @@ os.makedirs("output", exist_ok=True)
 # - olr: kg VS m⁻³ d⁻¹
 # - hrt: days (d)
 # ==========================================
-scenarios = [
-    {"id": "S1", "description": "Control food waste; no pretreatment", "enzyme_dose": 0, "t_pre": 0, "scg": 0.0, "olr": 2.5, "hrt": 25},
-    {"id": "S2", "description": "Low fungal pretreatment", "enzyme_dose": 30, "t_pre": 12, "scg": 0.0, "olr": 2.5, "hrt": 25},
-    {"id": "S3", "description": "Moderate fungal pretreatment", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
-    {"id": "S4", "description": "High fungal pretreatment", "enzyme_dose": 90, "t_pre": 36, "scg": 0.0, "olr": 2.5, "hrt": 25},
-    {"id": "S5", "description": "Extended fungal pretreatment", "enzyme_dose": 90, "t_pre": 72, "scg": 0.0, "olr": 2.5, "hrt": 25},
-    {"id": "S6", "description": "Moderate pretreatment + 10% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 2.5, "hrt": 25},
-    {"id": "S7", "description": "Moderate pretreatment + 20% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 20.0, "olr": 2.5, "hrt": 25},
-    {"id": "S8", "description": "Moderate pretreatment + 30% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 30.0, "olr": 2.5, "hrt": 25},
-    {"id": "S9", "description": "Moderate pretreatment + 10% SCG + high OLR", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 4.5, "hrt": 20},
-    # {"id": "S10", "description": "Carbohydrate-rich food-waste composition.", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
-]
-# scenarios_new = [
-#     {"id": "S10", "description": "Carbohydrate-rich food-waste composition.", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
+# scenarios = [
+#     {"id": "S1", "description": "Control food waste; no pretreatment", "enzyme_dose": 0, "t_pre": 0, "scg": 0.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S2", "description": "Low fungal pretreatment", "enzyme_dose": 30, "t_pre": 12, "scg": 0.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S3", "description": "Moderate fungal pretreatment", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S4", "description": "High fungal pretreatment", "enzyme_dose": 90, "t_pre": 36, "scg": 0.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S5", "description": "Extended fungal pretreatment", "enzyme_dose": 90, "t_pre": 72, "scg": 0.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S6", "description": "Moderate pretreatment + 10% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S7", "description": "Moderate pretreatment + 20% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 20.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S8", "description": "Moderate pretreatment + 30% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 30.0, "olr": 2.5, "hrt": 25},
+#     {"id": "S9", "description": "Moderate pretreatment + 10% SCG + high OLR", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 4.5, "hrt": 20},
 # ]
+
+scenarios = [
+    # S1-S9
+    {"id": "S1", "description": "Control food waste", "enzyme_dose": 0, "t_pre": 0, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S2", "description": "Low fungal pretreatment", "enzyme_dose": 30, "t_pre": 12, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S3", "description": "Moderate fungal pretreatment (Reference)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S4", "description": "High fungal pretreatment", "enzyme_dose": 90, "t_pre": 36, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S5", "description": "Extended fungal pretreatment", "enzyme_dose": 90, "t_pre": 72, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S6", "description": "Moderate pretreatment + 10% SCG", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 0.90, "SCG": 0.10}, "profiles": {"FW": FW_FRACTIONS, "SCG": SCG_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S7", "description": "Moderate pretreatment + 20% SCG", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 0.80, "SCG": 0.20}, "profiles": {"FW": FW_FRACTIONS, "SCG": SCG_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S8", "description": "Moderate pretreatment + 30% SCG", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 0.70, "SCG": 0.30}, "profiles": {"FW": FW_FRACTIONS, "SCG": SCG_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S9", "description": "Moderate pretreatment + 10% SCG + high OLR", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 0.90, "SCG": 0.10}, "profiles": {"FW": FW_FRACTIONS, "SCG": SCG_FRACTIONS}, "olr": 4.5, "hrt": 20},
+    
+    # S10-S13
+    {"id": "S10", "description": "Carbohydrate-rich (Cooked Rice)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Rice": 1.0}, "profiles": {"Rice": S10_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S11", "description": "Protein-rich (Meat Waste)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Meat": 1.0}, "profiles": {"Meat": S11_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S12", "description": "Lipid-rich (Plant Oil)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Oil": 1.0}, "profiles": {"Oil": S12_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S13", "description": "Fibre-rich (Banana Peel)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Peel": 1.0}, "profiles": {"Peel": S13_FRACTIONS}, "olr": 2.5, "hrt": 25}
+]
 
 # Global/Environmental Assumptions for the pipeline
 F_TS = 0.25          # published sim variable
 F_VS_TS = 0.90       # published sim variable
-REACTOR_VOL = 1.0    # Assumed: 1 cubic meter baseline reactor volume
+REACTOR_VOL = 1.0    # assumed: 1 cubic meter baseline reactor volume - 
 T_PRE = 30.0         # published sim variable
 PH_PRE = 5.5         # published sim variable
 
@@ -64,13 +79,13 @@ def main():
         current_olr = m_vs_daily / REACTOR_VOL
         
         # EXCEPTION: If the scenario explicitly calls for a high OLR
-        if scenario["olr"] > 2.5:
+        if scenario["olr"] > 2.5: # change value if OLR changes
             current_olr = scenario["olr"]
             m_vs_daily = current_olr * REACTOR_VOL
             m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
             
         # convert SCG percentage to fractions for the Feedstock class
-        scg_fraction = scenario["scg"] / 100.0
+        # scg_fraction = scenario["scg"] / 100.0
         
         # map the universal enzyme dose from the scenario to all specific classes
         doses = {
@@ -81,13 +96,20 @@ def main():
         }
         
         # instantiate Feedstock
+        # feedstock = Feedstock(
+        #     m_wet=m_wet_daily,
+        #     f_ts=F_TS,
+        #     f_vs_ts=F_VS_TS,
+        #     f_scg=scg_fraction,
+        #     fw_fractions=FW_FRACTIONS,
+        #     scg_fractions=SCG_FRACTIONS
+        # )
         feedstock = Feedstock(
-            m_wet=m_wet_daily,
-            f_ts=F_TS,
-            f_vs_ts=F_VS_TS,
-            f_scg=scg_fraction,
-            fw_fractions=FW_FRACTIONS,
-            scg_fractions=SCG_FRACTIONS
+            m_wet=m_wet_daily, 
+            f_ts=F_TS, 
+            f_vs_ts=F_VS_TS, 
+            mixture_ratios=scenario["mixture_ratios"],
+            profiles=scenario["profiles"]
         )
         
         config_dict = {
@@ -121,11 +143,14 @@ def main():
         }
         # calculate risks and practical yields
         practical_data = digester.get_practical_yields(scenario["olr"], config_dict)
+
+        # generate a string showing the feed composition (e.g. "FW: 100.0%")
+        mixture_str = ", ".join([f"{k}: {v*100}%" for k, v in scenario["mixture_ratios"].items()])
         
         results_summary.append({
             "Scenario ID": scenario["id"],
             "Scenario": scenario["description"],
-            "SCG ratio (%)": scenario["scg"],
+            "Feedstock Mixture": mixture_str,
             "FPSI": round(pretreatment.fpsi, 3),
             "k_hyd modified (1/day)": round(digester.modified_kinetics['k_hyd_modified'], 3),
             "Lag phase modified (days)": round(digester.modified_kinetics['lag_modified'], 3),
@@ -134,7 +159,7 @@ def main():
             "Improvement (%)": round(digester.yield_improvement, 3),
             "Energy CH4 (MJ)": round(digester.energy['E_CH4_treated'], 3),
             "Electricity potential (MJ)": round(digester.energy['E_electricity'], 3),
-            "R_total": round(practical_data['R_total'], 3), # total risk
+            "R_total": round(practical_data['R_total'], 3),
             "Stability score": round(practical_data['Stability'], 3),
             "Specific Yield (L/kgVS)": round(practical_data['Specific_Yield_L_kgVS'], 3),
             "SCOD increase (%)": round(digester.modified_kinetics["scod_increase_pct"], 3),
@@ -158,8 +183,16 @@ def main():
     df_results.to_csv(csv_file_path, index=False)
     print(f"\n[+] Results successfully saved to {csv_file_path}")
 
-    generate_all_plots(df_results, scenario_curves, output_dir="output")
+    # S1-S9
+    s1_to_s9_ids = [f"S{i}" for i in range(1, 10)]
+    df_s1_to_s9 = df_results[df_results["Scenario ID"].isin(s1_to_s9_ids)]
+    curves_s1_to_s9 = {k: v for k, v in scenario_curves.items() if k in s1_to_s9_ids}
 
+    # standard plots for S1-S9
+    generate_all_plots(df_s1_to_s9, curves_s1_to_s9, output_dir="output")
+    
+    # OAT composition comparison plot
+    plot_composition_oat_comparison(df_results, output_dir="output")
 
 if __name__ == "__main__":
     main()

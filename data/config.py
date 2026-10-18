@@ -7,22 +7,37 @@ FW_FRACTIONS = { # baseline fractions given by Dr.Bita
     'lipid': 0.20,
     'inert': 0.05
 }
-# FW_FRACTIONS = { # S10
-#     'carb': 0.9206, # -0.18
-#     'protein': 0.0713,
-#     'lipid': 0.0072,
-#     'inert': 0.0009
-# }
-# # FW_FRACTIONS = { # S11
-#     'carb': 0.,
-#     'protein': 0.3774,
-#     'lipid': 0.,
-#     'inert': 0.
-# }
-# FW_FRACTIONS = {
 
-# }
-
+# S10: Cooked Rice (Carbohydrate-rich anchor)
+S10_FRACTIONS = {
+    'carb': 0.9206, # -0.18
+    'protein': 0.0713,
+    'lipid': 0.0072,
+    'inert': 0.0009
+}
+# S11: meat waste (protein-rich anchor) - normalised to satisfy constraints of equation 3
+S11_FRACTIONS = {
+    'carb': 0.083,   # normalised from 3.48%
+    'protein': 0.904,# normalised from 37.74%
+    'lipid': 0.013,  # normalised from 0.51%
+    'inert': 0.000
+}
+# S12: plant oil (lipid-rich anchor)
+# NOTE: carbon is ignored
+S12_FRACTIONS = {
+    'carb': 0.000,
+    'protein': 0.000,
+    'lipid': 0.9999, # anchored to 99.99%
+    'inert': 0.0001 # to satisfy equation 3
+}
+# S13: banana peel (fibre-rich anchor)
+# total sum is 88.75 - for normalisation
+S13_FRACTIONS = { # uses midpoints of all the ranges
+    'carb': 0.819,   # normalised from 72.7% - assumption: cellulose (58.9–64%), hemicellulose (3.5–19%)
+    'protein': 0.039,# normalised from 3.5% (2–5%)
+    'lipid': 0.007,  # normalised from 0.6% (0.2–1%)
+    'inert': 0.135   # normalised from 11.95% - Lignin (5–18.9%)
+}
 
 SCG_FRACTIONS = { # other sim
     'carb': 0.42,

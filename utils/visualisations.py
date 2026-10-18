@@ -116,3 +116,51 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
     plt.close()
     
     print(f"[+] Visualization successfully saved to {plot5_path}")
+
+def plot_composition_oat_comparison(df_results, output_dir="output"):
+    """
+    Generates a targeted bar chart comparing the S3 reference against 
+    the composition OAT scenarios (S10, S11, S12).
+    """
+    # filter the dataframe for the relevant scenarios
+    target_scenarios = ['S3', 'S10', 'S11', 'S12', 'S13']
+    df_filtered = df_results[df_results['Scenario ID'].isin(target_scenarios)]
+    
+    if df_filtered.empty:
+        print("[-] Target scenarios not found in data for OAT comparison.")
+        return
+
+    scenarios = df_filtered["Scenario ID"].tolist()
+    yields = df_filtered["Specific Yield (L/kgVS)"].tolist()
+    
+    # calculate percentage difference relative to S3
+    s3_yield = df_filtered[df_filtered['Scenario ID'] == 'S3']["Specific Yield (L/kgVS)"].iloc[0]
+    
+    plt.figure(figsize=(10, 6))
+    
+    # colors = ['#1f77b4' if s == 'S3' else '#ff7f0e' for s in scenarios]
+    bars = plt.bar(scenarios, yields, color='#1f77b4', edgecolor='black', width=0.6)
+    
+    for bar, scenario_id, yval in zip(bars, scenarios, yields):
+        # Annotate absolute value
+        plt.text(bar.get_x() + bar.get_width()/2, yval + 5, f'{yval:.1f}', 
+                 ha='center', va='bottom', fontweight='bold')
+        
+        # Annotate percentage difference from S3 (Equation 88)
+        if scenario_id != 'S3':
+            pct_diff = ((yval - s3_yield) / s3_yield) * 100.0
+            sign = "+" if pct_diff > 0 else ""
+            plt.text(bar.get_x() + bar.get_width()/2, yval / 2, f'{sign}{pct_diff:.1f}%', 
+                     ha='center', va='center', color='white', fontweight='bold')
+
+    plt.axhline(s3_yield, color='black', linestyle='--', linewidth=1.2, alpha=0.7)
+    plt.xlabel('Scenario ID', fontsize=12, fontweight='bold')
+    plt.ylabel('Specific Methane Yield (L/kgVS)', fontsize=12, fontweight='bold')
+    plt.title('Food Waste Composition Sensitivities vs. S3 Reference', fontsize=14, fontweight='bold')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plot_path = os.path.join(output_dir, "oat_composition_comparison.png")
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"[+] OAT Visualization successfully saved to {plot_path}")
