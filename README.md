@@ -59,3 +59,5 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-b
 ├── README.md
 └── requirements.txt
 ```
+
+S21-S24 biochar/inoculum extension: see [BIOCHAR_INOCULUM.md](BIOCHAR_INOCULUM.md) for assumptions, equations, units, limitations, outputs and execution commands.
