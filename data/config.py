@@ -36,7 +36,7 @@ S13_FRACTIONS = { # uses midpoints of all the ranges
     'carb': 0.819,   # normalised from 72.7% - assumption: cellulose (58.9–64%), hemicellulose (3.5–19%)
     'protein': 0.039,# normalised from 3.5% (2–5%)
     'lipid': 0.007,  # normalised from 0.6% (0.2–1%)
-    'inert': 0.135   # normalised from 11.95% - Lignin (5–18.9%)
+    'inert': 0.135   # normalised from 11.95% - lignin (5–18.9%)
 }
 
 SCG_FRACTIONS = { # other sim
@@ -169,9 +169,40 @@ STABILITY_WEIGHTS = { # directly from dr. bita's code/paper
     'w_olr': 0.20
 }
 
-# Baseline estimated concentrations for an uninhibited digester
+# baseline estimated concentrations for an uninhibited digester
+# ! PRELIMINARY ASSUMED VALUES
 DIGESTER_CONDITIONS = {
     'vfa_actual': 1500.0,
     'fan_actual': 150.0,
     'ph_actual': 7.1
+}
+
+# * VERIFIED PARAMETERS
+MICROBIAL_KINETICS = { # S14-17 - reference: https://peerj.com/articles/16720.pdf
+    # S14: hydrolytic/fermentative bacterial activity (sugar degraders)
+    "acidogenic": {
+        "k_max": 30.0,       # k_m,su (1/d)
+        "K_S": 0.5,          # K_S,su (kg COD   / m3)
+        "Y": 0.10            # Y_su
+    },
+    # S15: acetogenic/syntrophic bacterial activity (propionate degraders)
+    "acetogenic": {
+        "k_max": 13.0,       # k_m,pro (1/d)
+        "K_S": 0.10,         # K_S,pro (kg COD / m3)
+        "Y": 0.04,           # Y_pro
+        "K_I_H2": 3.5e-6     # K_I,H2,pro (kg COD / m3)
+    },
+    # S16: acetoclastic methanogenic archaea
+    "acetoclastic": {
+        "k_max": 8.0,        # k_m,ac (1/d)
+        "K_S": 0.15,         # K_S,ac (kg COD / m3)
+        "Y": 0.05,           # Y_ac
+        "K_I_NH3": 0.0018    # unit: M (free ammonia inhibition limit)
+    },
+    # S17: hydrogenotrophic methanogenic archaea
+    "hydrogenotrophic": {
+        "k_max": 35.0,       # k_m,H2 (1/d)
+        "K_S": 7e-6,         # K_S,H2 (kg COD / m3)
+        "Y": 0.06            # Y_H2
+    }
 }
