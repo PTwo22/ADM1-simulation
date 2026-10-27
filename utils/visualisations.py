@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 def generate_all_plots(df_results, scenario_curves, output_dir="output"):
     """Generates and saves all simulation visualisations to the designated output directory."""
@@ -119,11 +120,10 @@ def generate_all_plots(df_results, scenario_curves, output_dir="output"):
 
 def plot_composition_oat_comparison(df_results, output_dir="output"):
     """
-    Generates a targeted bar chart comparing the S3 reference against 
-    the composition OAT scenarios (S10, S11, S12).
+    Compares the S3 reference against composition and NaOH OAT scenarios.
     """
     # filter the dataframe for the relevant scenarios
-    target_scenarios = ['S3', 'S10', 'S11', 'S12', 'S13']
+    target_scenarios = ['S3', 'S10', 'S11', 'S12', 'S13', 'S18', 'S19', 'S20']
     df_filtered = df_results[df_results['Scenario ID'].isin(target_scenarios)]
     
     if df_filtered.empty:
@@ -138,8 +138,13 @@ def plot_composition_oat_comparison(df_results, output_dir="output"):
     
     plt.figure(figsize=(10, 6))
     
-    # colors = ['#1f77b4' if s == 'S3' else '#ff7f0e' for s in scenarios]
-    bars = plt.bar(scenarios, yields, color='#1f77b4', edgecolor='black', width=0.6)
+    colors = [
+        '#1f77b4' if scenario_id == 'S3'
+        else '#2ca02c' if scenario_id in {'S18', 'S19', 'S20'}
+        else '#ff7f0e'
+        for scenario_id in scenarios
+    ]
+    bars = plt.bar(scenarios, yields, color=colors, edgecolor='black', width=0.6)
     
     for bar, scenario_id, yval in zip(bars, scenarios, yields):
         # Annotate absolute value
@@ -156,7 +161,13 @@ def plot_composition_oat_comparison(df_results, output_dir="output"):
     plt.axhline(s3_yield, color='black', linestyle='--', linewidth=1.2, alpha=0.7)
     plt.xlabel('Scenario ID', fontsize=12, fontweight='bold')
     plt.ylabel('Specific Methane Yield (L/kgVS)', fontsize=12, fontweight='bold')
-    plt.title('Food Waste Composition Sensitivities vs. S3 Reference', fontsize=14, fontweight='bold')
+    legend_items = [
+        Patch(facecolor='#1f77b4', edgecolor='black', label='S3 reference'),
+        Patch(facecolor='#ff7f0e', edgecolor='black', label='Composition scenarios'),
+        Patch(facecolor='#2ca02c', edgecolor='black', label='NaOH scenarios'),
+    ]
+    plt.legend(handles=legend_items)
+    plt.title('Composition and NaOH Sensitivities vs. S3 Reference', fontsize=14, fontweight='bold')
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     
     plot_path = os.path.join(output_dir, "oat_composition_comparison.png")

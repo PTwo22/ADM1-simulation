@@ -4,11 +4,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from data.config import *
+from data.chemical_config import CHEMICAL_PRETREATMENT_CONFIG
 from AD.feedstock import Feedstock
 from pretreatment.pretreatment import Pretreatment
+from pretreatment.chemical_pretreatment import ChemicalPretreatment
 from AD.digester import Digester
+from AD.chemical_digester import ChemicalDigester
 
-from utils.visualisations import generate_all_plots, plot_composition_oat_comparison
+from utils.visualisations import (
+    generate_all_plots,
+    plot_composition_oat_comparison,
+)
 
 # create an output directory for CSVs and plots if it doesn't exist
 os.makedirs("output", exist_ok=True)
@@ -49,7 +55,12 @@ scenarios = [
     {"id": "S10", "description": "Carbohydrate-rich (Cooked Rice)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Rice": 1.0}, "profiles": {"Rice": S10_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S11", "description": "Protein-rich (Meat Waste)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Meat": 1.0}, "profiles": {"Meat": S11_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S12", "description": "Lipid-rich (Plant Oil)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Oil": 1.0}, "profiles": {"Oil": S12_FRACTIONS}, "olr": 2.5, "hrt": 25},
-    {"id": "S13", "description": "Fibre-rich (Banana Peel)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Peel": 1.0}, "profiles": {"Peel": S13_FRACTIONS}, "olr": 2.5, "hrt": 25}
+    {"id": "S13", "description": "Fibre-rich (Banana Peel)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Peel": 1.0}, "profiles": {"Peel": S13_FRACTIONS}, "olr": 2.5, "hrt": 25},
+
+    # S18-S20: NaOH replaces fungal treatment; other feed/AD inputs match S3.
+    {"id": "S18", "description": "Chemical pretreatment (1 wt% NaOH)", "naoh_wt_percent": 1.0, "enzyme_dose": 0, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S19", "description": "Chemical pretreatment (2 wt% NaOH)", "naoh_wt_percent": 2.0, "enzyme_dose": 0, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S20", "description": "Chemical pretreatment (3 wt% NaOH)", "naoh_wt_percent": 3.0, "enzyme_dose": 0, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25}
 ]
 
 # Global/Environmental Assumptions for the pipeline
@@ -85,6 +96,79 @@ def main(scenario_ids=None):
     # main simulation Loop
     for scenario in scenarios:
         
+        # back-calculate Feedstock Wet Mass based on daily OLR. 
+        # m_vs_daily = scenario["olr"] * REACTOR_VOL
+        # m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
+
+        m_wet_daily = 10.0
+        m_vs_daily = m_wet_daily * F_TS * F_VS_TS
+
+        # calculate the true OLR based on the fixed wet mass
+        # 10.0 * 0.25 * 0.90 = 2.25 kg VS per day
+        current_olr = m_vs_daily / REACTOR_VOL
+        
+        # EXCEPTION: If the scenario explicitly calls for a high OLR
+        if scenario["olr"] > 2.5: # change value if OLR changes
+            current_olr = scenario["olr"]
+            m_vs_daily = current_olr * REACTOR_VOL
+            m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
+            
+        # convert SCG percentage to fractions for the Feedstock class
+        # scg_fraction = scenario["scg"] / 100.0
+        
+        # map the universal enzyme dose from the scenario to all specific classes
+        doses = {
+            'carb': scenario["enzyme_dose"], 
+            'protein': scenario["enzyme_dose"], 
+            'lipid': scenario["enzyme_dose"], 
+            'inert': scenario["enzyme_dose"]
+        }
+        
+        # instantiate Feedstock
+        # feedstock = Feedstock(
+        #     m_wet=m_wet_daily,
+        #     f_ts=F_TS,
+        #     f_vs_ts=F_VS_TS,
+        #     f_scg=scg_fraction,
+        #     fw_fractions=FW_FRACTIONS,
+        #     scg_fractions=SCG_FRACTIONS
+        # )
+        feedstock = Feedstock(
+            m_wet=m_wet_daily, 
+            f_ts=F_TS, 
+            f_vs_ts=F_VS_TS, 
+            mixture_ratios=scenario["mixture_ratios"],
+            profiles=scenario["profiles"]
+        )
+        
+        config_dict = {
+            'DIGESTER_CALIBRATION': DIGESTER_CALIBRATION,
+            'DIGESTER_BASELINES': DIGESTER_BASELINES,
+            'BMP_CONSTANTS': BMP_CONSTANTS,
+            'RISK_THRESHOLDS': RISK_THRESHOLDS,
+            'STABILITY_WEIGHTS': STABILITY_WEIGHTS,
+            'DIGESTER_CONDITIONS': DIGESTER_CONDITIONS
+        }
+        # instantiate Pretreatment
+        if "naoh_wt_percent" in scenario:
+            pretreatment = ChemicalPretreatment(
+                concentration_wt_percent=scenario["naoh_wt_percent"],
+                wet_feed_mass_kg=m_wet_daily,
+                config=CHEMICAL_PRETREATMENT_CONFIG,
+            )
+        else:
+            pretreatment = Pretreatment(
+                temp_pre=T_PRE,
+                ph_pre=PH_PRE,
+                time_pre=scenario["t_pre"],
+                enzyme_doses=doses,
+                config=PRETREATMENT_CONFIG,
+                weights=FPSI_WEIGHTS
+            )
+        
+        # instantiate Digester
+        digester_class = ChemicalDigester if isinstance(pretreatment, ChemicalPretreatment) else Digester
+        digester = digester_class(feedstock=feedstock, pretreatment=pretreatment, config=config_dict)
         if scenario_ids is not None and scenario["id"] not in scenario_ids:
             continue
         feedstock, pretreatment, digester, config_dict = run_scenario(scenario)
@@ -103,6 +187,8 @@ def main(scenario_ids=None):
         # generate a string showing the feed composition (e.g. "FW: 100.0%")
         mixture_str = ", ".join([f"{k}: {v*100}%" for k, v in scenario["mixture_ratios"].items()])
         
+        is_chemical = isinstance(pretreatment, ChemicalPretreatment)
+        
         batch_row = {}
         if scenario['id'] in ('S3', 'S21', 'S22', 'S23', 'S24'):
             batch_row, batch_curves[scenario['id']] = evaluate_batch(digester, scenario, config_dict, REACTOR_VOL)
@@ -112,7 +198,7 @@ def main(scenario_ids=None):
             "Scenario ID": scenario["id"],
             "Scenario": scenario["description"],
             "Feedstock Mixture": mixture_str,
-            "FPSI": round(pretreatment.fpsi, 3),
+            "FPSI": "N/A" if is_chemical else round(pretreatment.fpsi, 3),
             "k_hyd modified (1/day)": round(digester.modified_kinetics['k_hyd_modified'], 3),
             "Lag phase modified (days)": round(digester.modified_kinetics['lag_modified'], 3),
             "Control Yield (Nm3/d)": round(digester.y_ch4_control, 3),
@@ -167,6 +253,8 @@ def main(scenario_ids=None):
         plot_composition_oat_comparison(df_results, output_dir="output")
 
 if __name__ == "__main__":
+    main()
+
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--biochar-only', action='store_true', help='Run S3 and S21-S24; preserve legacy plots')
