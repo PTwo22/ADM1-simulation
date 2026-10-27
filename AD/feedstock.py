@@ -1,13 +1,10 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Dict, Tuple
-import math
-import os
+"""Feedstock composition and mass-basis calculations."""
 
-"""
-Formulas presented in Feedstock class: 1, 2, 3, 4, 6, 7
-"""
+from __future__ import annotations
+
+import math
+from typing import Dict, Mapping, Tuple
+
 
 class Feedstock:
     """
@@ -48,8 +45,8 @@ class Feedstock:
             if not math.isclose(sum(profile.values()), 1.0, rel_tol=1e-5):
                 raise ValueError(f"Organic fractions for {name} must sum to 1.0")
 
-    def _calculate_solids(self) -> None:
-        """gives back total solids (TS) and volitile solids (VS)"""
+    def _calculate_solids(self) -> Tuple[float, float]:
+        """Return total-solids and volatile-solids masses in kg."""
         m_ts = self.m_wet * self.f_ts
         m_vs = m_ts * self.f_vs_ts
         return m_ts, m_vs

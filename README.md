@@ -1,63 +1,178 @@
-# ADM1 Simulation
-**Project: Waste-to-Energy Simulation: Biogas Production from Food Waste Using Python**
+# ADM1 Food-Waste Simulation
 
-feed composition → fungal pretreatment → solubilisation/hydrolysis → methane → energy →
-risk
+Python simulation of anaerobic digestion for food waste and spent coffee
+grounds (SCG). It compares treatment and operating scenarios and predicts
+methane production, energy recovery and digester conditions over time.
 
-## Instructions
-1. Install all necessary dependencies
+The simulation is separate from the user interface so it can be connected to
+another application through its Python API.
+
+## What the model includes
+
+- Dynamic ADM1 reactor calculations
+- Food-waste and SCG feed calculations
+- Fungal-enzyme pretreatment
+- CaO chemical-pretreatment screening case
+- CSTR mass balances and biological reactions
+- pH, VFA, TAN and FAN calculations
+- Methane, carbon dioxide and energy outputs
+- One-input-at-a-time sensitivity testing
+- JSON-ready outputs for the UI
+
+> The model runs successfully, but some feed and pretreatment parameters are
+> provisional. Experimental data are still needed for final calibration.
+
+## Install
+
+From the project folder:
+
 ```bash
-# Windows instructions
-python -m venv env
-.\env\Scripts\activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Optional: Install Better Comments extension for VSCode for better reading of codebase
-```
-Name: Better Comments
-Id: aaron-bond.better-comments
-Description: Improve your code commenting by annotating with alert, informational, TODOs, and more!
-Version: 3.0.2
-Publisher: Aaron Bond
-VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=aaron-bond.better-comments
+## Run
+
+```bash
+python run_adm1.py
 ```
 
-## Structure
-![High level diagram](high-level-diagram.png)
-### CLasses
-#### Feedstock
-- **Description**: This is where all the materials/feedstocks amount lives before any AD or pretreatment occurs. Transforms operational inputs into volatile solid masses that the bacterial kinetics models require to compute methane generation.
-- **Presented Formulas**: 1, 2, 3, 4, 6, 7
+The program displays this menu:
 
-#### Pretreatment
-- **Description**: Translates physical operational conditions (temperature, pH, reaction time, and enzyme dosage) into a representation of the effectiveness of the degraded waste. Computes 4 specific response factors for each organic matter class.
-
-- **Inputs**: Operational configs and kinetic constants.
-
-- **Outputs**: Fungal Pretreatment Severity Index (FPSI) [ref: formula 14], global effectiveness dictionary (Ai) [ref: formula 13]. Passes FPSI to ```Digester``` class
-
-
-#### Digester
-- **Description**: The main simulation for the CSTR (Continuous Stirred Tank Reactor) to do the AD process where the ```Feedstock``` class' physical mass is combined with the modifications from the Pretreatment class to calculate methane yield, kinetic shifts, and energy recovery.
-
-- **Inputs**: 
-
-- **Outputs**: methane yield, kinetic shifts, and energy recovery
-
-> [!NOTE] Presented formulas refer to the 'Required Formula List for the Simulation' given at the start of this internship
-
-
-
-```
-/ADM1-simulation
-├── AD/
-├── data/
-├── notebook/
-├── pretreatment/
-├── main.py
-├── README.md
-└── requirements.txt
+```text
+1. Compare priority scenarios (S1, S3, S6)
+2. Show all scenarios
+3. Choose specific scenario(s)
+4. Test the effect of one input
+5. Exit
 ```
 
-S21-S24 biochar/inoculum extension: see [BIOCHAR_INOCULUM.md](BIOCHAR_INOCULUM.md) for assumptions, equations, units, limitations, outputs and execution commands.
+Options 3 and 4 allow another selection without restarting the program:
+
+- Enter another number to run the next selection.
+- Enter `M` to return to the main menu.
+- Enter `0` to exit.
+
+## Direct commands
+
+```bash
+# Compare the priority scenarios
+python run_adm1.py S1 S3 S6
+
+# Run every implemented scenario
+python run_adm1.py --all
+
+# Run selected scenarios
+python run_adm1.py S1 S4 S6
+
+# Test one input around Scenario S3
+python run_adm1.py --sensitivity olr
+python run_adm1.py --sensitivity hrt
+python run_adm1.py --sensitivity pretreatment_time
+```
+
+## Scenarios
+
+| ID | Description |
+|---|---|
+| S1 | Control food waste with no pretreatment |
+| S2 | Low fungal-enzyme pretreatment |
+| S3 | Moderate fungal-enzyme pretreatment for 24 hours |
+| S4 | High fungal-enzyme pretreatment |
+| S5 | Extended fungal-enzyme pretreatment for 72 hours |
+| S6 | Moderate pretreatment with 10% SCG |
+| S7 | Moderate pretreatment with 20% SCG |
+| S8 | Moderate pretreatment with 30% SCG |
+| S9 | S6 with a higher organic loading rate |
+| C1 | 1% CaO chemical-pretreatment screening case |
+
+S1 is the untreated control. It is automatically included when another
+scenario is selected so the program can calculate improvement against the
+control.
+
+## Main inputs
+
+- Wet feed mass
+- Total solids and volatile solids
+- Food-waste and SCG composition
+- Pretreatment dose and duration
+- Organic loading rate (OLR)
+- Hydraulic retention time (HRT)
+- Influent pH and digester temperature
+- Reactor liquid and gas volumes
+- Simulation duration
+
+Starting values are stored in `data/config.py` and `data/adm1_config.py`. The
+original team datasets are also stored in `data/`.
+
+## Main outputs
+
+- Methane yield in L CH4/kg VS
+- Methane, carbon dioxide, hydrogen and total-biogas rates
+- Methane percentage in dry biogas
+- Gross methane energy in kWh
+- pH
+- Volatile fatty acids (VFA)
+- Total ammonia nitrogen (TAN)
+- Free ammonia nitrogen (FAN)
+- Time-series results
+- COD, carbon and nitrogen mass-balance checks
+
+The model provides raw pH, VFA, TAN and FAN values. Stability scoring is not
+applied because approved limits and scoring rules have not been provided.
+
+## Project structure
+
+```text
+ADM1-simulation/
+├── AD/adm1/          ADM1 equations, chemistry and solver
+├── AD/feedstock.py   Food-waste and SCG calculations
+├── data/             Input values and supplied CSV datasets
+├── model_analysis/   Sensitivity, calibration and validation tools
+├── pretreatment/     Fungal pretreatment and FPSI calculations
+├── scenarios/        Scenario definitions and simulation API
+├── tests/            Automated tests
+└── run_adm1.py       Command-line program
+```
+
+## Connect a user interface
+
+```python
+from scenarios import SimulationInputs, run_scenario, run_scenario_set
+
+inputs = SimulationInputs(
+    wet_feed_mass_kg=1.0,
+    influent_pH=7.2,
+    duration_d=100.0,
+)
+
+result = run_scenario("S3", inputs=inputs)
+summary = result.summary()
+time_series = result.time_records()
+ui_payload = result.to_payload()
+
+comparison = run_scenario_set(("S1", "S3", "S6"), inputs=inputs)
+comparison_payload = comparison.to_payload()
+```
+
+The returned data are JSON-ready. The UI does not need to access or modify the
+ADM1 equations.
+
+## Test
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+A successful test run ends with:
+
+```text
+Ran 32 tests
+OK
+```
+
+## Current limitations
+
+- Experimental time-series data are still required for calibration.
+- Stability scoring is outside the current model scope.
+- Algae, archaea and hybrid-treatment scenarios require compatible parameters.
+- Economic, recovery and user-interface calculations are outside this model.

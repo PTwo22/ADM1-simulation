@@ -1,0 +1,21 @@
+variable,parameter,baseline_value,unit,status,source_basis
+t_pre,pretreatment_time,24.0,h,ready,Kiran et al. (2015)
+T_pre,pretreatment_temperature,60.0,degC,ready,Kiran et al. (2015)
+pH_pre,pretreatment_pH,4.8,pH,provisional_literature_aligned,Kiran et al. (2015)
+E_i,enzyme_dose_activity,10.0,U/g dry FW,ready,Kiran et al. (2015)
+K_E_i,half_saturation_enzyme_constant,10.0,U/g dry FW,provisional_modelling_assumption,Reference dose used as half-response point
+T_opt_i,optimum_enzyme_temperature,60.0,degC,ready,Kiran et al. (2015)
+sigma_T_i,temperature_tolerance_width,15.0,degC,provisional_literature_informed,Related Aspergillus glucoamylase temperature-response evidence
+pH_opt_i,optimum_enzyme_pH,4.8,pH,ready,Kiran et al. (2015)
+sigma_pH_i,pH_tolerance_width,1.5,pH,provisional_literature_informed,Related Aspergillus glucoamylase pH-response evidence
+k_t_i,time_response_coefficient,0.4,1/h,provisional_calibrated,Derived from Kiran et al. (2015) time-response data
+w_i,FPSI_substrate_weighting_factor,0.25,dimensionless,team_assumption,Equal initial weighting for four classes
+SCOD_control,control_raw_soluble_COD,68.4,kg COD/m3,provisional_cross_study,Pagliaccia et al.; not matched to Kiran feed
+alpha_SCOD,SCOD_calibration_coefficient,1.41,dimensionless,provisional_cross_study_calibration,Assumes reference FPSI = 1; Kiran treated SCOD vs provisional control
+k_hyd_ch,baseline_hydrolysis_carbohydrate,0.25,1/d,ready,Batstone et al. (2002)
+k_hyd_pr,baseline_hydrolysis_protein,0.2,1/d,ready,Batstone et al. (2002)
+k_hyd_li,baseline_hydrolysis_lipid,0.1,1/d,ready,Batstone et al. (2002)
+alpha_hyd,hydrolysis_calibration_coefficient,2.5,dimensionless,exploratory_proxy,Proxy from ~3.5x methane production-rate improvement; sensitivity-test
+B_carb,baseline_biodegradability_carbohydrate,0.9,fraction 0-1,provisional_literature_informed,Initial substrate-class biodegradability baseline
+B_protein,baseline_biodegradability_protein,0.6,fraction 0-1,provisional_literature_informed,Initial substrate-class biodegradability baseline
+B_lipid,baseline_biodegradability_lipid,0.73,fraction 0-1,provisional_literature_informed,Initial substrate-class biodegradability baseline
