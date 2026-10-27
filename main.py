@@ -6,7 +6,7 @@ import numpy as np
 from data.config import *
 from data.chemical_config import CHEMICAL_PRETREATMENT_CONFIG
 from AD.feedstock import Feedstock
-from pretreatment.pretreatment import Pretreatment
+from pretreatment.screening_reference import ScreeningReferencePretreatment as Pretreatment
 from pretreatment.chemical_pretreatment import ChemicalPretreatment
 from AD.digester import Digester
 from AD.chemical_digester import ChemicalDigester
@@ -95,6 +95,8 @@ def main(scenario_ids=None):
 
     # main simulation Loop
     for scenario in scenarios:
+        if scenario_ids is not None and scenario["id"] not in scenario_ids:
+            continue
         
         # back-calculate Feedstock Wet Mass based on daily OLR. 
         # m_vs_daily = scenario["olr"] * REACTOR_VOL
@@ -171,7 +173,8 @@ def main(scenario_ids=None):
         digester = digester_class(feedstock=feedstock, pretreatment=pretreatment, config=config_dict)
         if scenario_ids is not None and scenario["id"] not in scenario_ids:
             continue
-        feedstock, pretreatment, digester, config_dict = run_scenario(scenario)
+        if scenario["id"] in {"S3", "S21", "S22", "S23", "S24"}:
+            feedstock, pretreatment, digester, config_dict = run_scenario(scenario)
         # calculate the Gompertz curve for all
         time_array = np.linspace(0, scenario["hrt"], num=scenario["hrt"] + 1)
         treated_curve = digester.calculate_gompertz_curve(time_array, is_treated=True)
@@ -253,8 +256,6 @@ def main(scenario_ids=None):
         plot_composition_oat_comparison(df_results, output_dir="output")
 
 if __name__ == "__main__":
-    main()
-
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--biochar-only', action='store_true', help='Run S3 and S21-S24; preserve legacy plots')
