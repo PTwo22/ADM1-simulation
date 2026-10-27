@@ -164,3 +164,32 @@ def plot_composition_oat_comparison(df_results, output_dir="output"):
     plt.close()
     
     print(f"[+] OAT Visualization successfully saved to {plot_path}")
+
+
+def plot_microbial_oat_comparison(df_results, output_dir="output"):
+    """Compares microbial kinetic OAT scenarios (S14-S17) against S3 reference."""
+    target_scenarios = ['S3', 'S14', 'S15', 'S16', 'S17']
+    df_filtered = df_results[df_results['Scenario ID'].isin(target_scenarios)]
+    
+    if df_filtered.empty:
+        return
+
+    scenarios = df_filtered["Scenario ID"].tolist()
+    yields = df_filtered["Specific Yield (L/kgVS)"].tolist()
+    s3_yield = df_filtered[df_filtered['Scenario ID'] == 'S3']["Specific Yield (L/kgVS)"].iloc[0]
+    
+    plt.figure(figsize=(10, 6))
+    colors = ['#1f77b4' if s == 'S3' else '#9467bd' for s in scenarios]
+    bars = plt.bar(scenarios, yields, color=colors, edgecolor='black', width=0.6)
+    
+    for bar, scenario_id, yval in zip(bars, scenarios, yields):
+        plt.text(bar.get_x() + bar.get_width()/2, yval + 5, f'{yval:.1f}', ha='center', va='bottom', fontweight='bold')
+        if scenario_id != 'S3':
+            pct_diff = ((yval - s3_yield) / s3_yield) * 100.0
+            sign = "+" if pct_diff > 0 else ""
+            plt.text(bar.get_x() + bar.get_width()/2, yval / 2, f'{sign}{pct_diff:.1f}%', ha='center', va='center', color='white', fontweight='bold')
+
+    plt.axhline(s3_yield, color='black', linestyle='--', linewidth=1.2, alpha=0.7)
+    plt.title('Microbial Kinetic Sensitivities vs. S3 Reference', fontsize=14, fontweight='bold')
+    plt.savefig(os.path.join(output_dir, "oat_microbial_comparison.png"), dpi=300, bbox_inches='tight')
+    plt.close()

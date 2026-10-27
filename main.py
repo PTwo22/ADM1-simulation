@@ -2,13 +2,14 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import minimize_scalar
 
 from data.config import *
 from AD.feedstock import Feedstock
 from pretreatment.pretreatment import Pretreatment
 from AD.digester import Digester
 
-from utils.visualisations import generate_all_plots, plot_composition_oat_comparison
+from utils.visualisations import generate_all_plots, plot_composition_oat_comparison, plot_microbial_oat_comparison
 
 # create an output directory for CSVs and plots if it doesn't exist
 os.makedirs("output", exist_ok=True)
@@ -21,23 +22,13 @@ os.makedirs("output", exist_ok=True)
 # - olr: kg VS m⁻³ d⁻¹
 # - hrt: days (d)
 # ==========================================
-# scenarios = [
-#     {"id": "S1", "description": "Control food waste; no pretreatment", "enzyme_dose": 0, "t_pre": 0, "scg": 0.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S2", "description": "Low fungal pretreatment", "enzyme_dose": 30, "t_pre": 12, "scg": 0.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S3", "description": "Moderate fungal pretreatment", "enzyme_dose": 60, "t_pre": 24, "scg": 0.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S4", "description": "High fungal pretreatment", "enzyme_dose": 90, "t_pre": 36, "scg": 0.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S5", "description": "Extended fungal pretreatment", "enzyme_dose": 90, "t_pre": 72, "scg": 0.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S6", "description": "Moderate pretreatment + 10% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S7", "description": "Moderate pretreatment + 20% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 20.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S8", "description": "Moderate pretreatment + 30% SCG", "enzyme_dose": 60, "t_pre": 24, "scg": 30.0, "olr": 2.5, "hrt": 25},
-#     {"id": "S9", "description": "Moderate pretreatment + 10% SCG + high OLR", "enzyme_dose": 60, "t_pre": 24, "scg": 10.0, "olr": 4.5, "hrt": 20},
-# ]
+MODIFIER = 1.2
 
 scenarios = [
     # S1-S9
     {"id": "S1", "description": "Control food waste", "enzyme_dose": 0, "t_pre": 0, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S2", "description": "Low fungal pretreatment", "enzyme_dose": 30, "t_pre": 12, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
-    {"id": "S3", "description": "Moderate fungal pretreatment (Reference)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
+    {"id": "S3", "description": "Moderate fungal pretreatment", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S4", "description": "High fungal pretreatment", "enzyme_dose": 90, "t_pre": 36, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S5", "description": "Extended fungal pretreatment", "enzyme_dose": 90, "t_pre": 72, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S6", "description": "Moderate pretreatment + 10% SCG", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 0.90, "SCG": 0.10}, "profiles": {"FW": FW_FRACTIONS, "SCG": SCG_FRACTIONS}, "olr": 2.5, "hrt": 25},
@@ -49,7 +40,13 @@ scenarios = [
     {"id": "S10", "description": "Carbohydrate-rich (Cooked Rice)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Rice": 1.0}, "profiles": {"Rice": S10_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S11", "description": "Protein-rich (Meat Waste)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Meat": 1.0}, "profiles": {"Meat": S11_FRACTIONS}, "olr": 2.5, "hrt": 25},
     {"id": "S12", "description": "Lipid-rich (Plant Oil)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Oil": 1.0}, "profiles": {"Oil": S12_FRACTIONS}, "olr": 2.5, "hrt": 25},
-    {"id": "S13", "description": "Fibre-rich (Banana Peel)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Peel": 1.0}, "profiles": {"Peel": S13_FRACTIONS}, "olr": 2.5, "hrt": 25}
+    {"id": "S13", "description": "Fibre-rich (Banana Peel)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"Peel": 1.0}, "profiles": {"Peel": S13_FRACTIONS}, "olr": 2.5, "hrt": 25},
+
+    # S14-S17
+    {"id": "S14", "description": "Acidogenic Bacterial Activity (+20%)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25, "target_microbe": "acidogenic", "target_param": "k_max", "modifier": MODIFIER},
+    {"id": "S15", "description": "Acetogenic Bacterial Activity (+20%)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25, "target_microbe": "acetogenic", "target_param": "k_max", "modifier": MODIFIER},
+    {"id": "S16", "description": "Acetoclastic Methanogenic Archaea (+20%)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25, "target_microbe": "acetoclastic", "target_param": "k_max", "modifier": MODIFIER},
+    {"id": "S17", "description": "Hydrogenotrophic Methanogenic Archaea (+20%)", "enzyme_dose": 60, "t_pre": 24, "mixture_ratios": {"FW": 1.0}, "profiles": {"FW": FW_FRACTIONS}, "olr": 2.5, "hrt": 25, "target_microbe": "hydrogenotrophic", "target_param": "k_max", "modifier": MODIFIER}
 ]
 
 # Global/Environmental Assumptions for the pipeline
@@ -59,10 +56,24 @@ REACTOR_VOL = 1.0    # assumed: 1 cubic meter baseline reactor volume -
 T_PRE = 30.0         # published sim variable
 PH_PRE = 5.5         # published sim variable
 
+def find_baseline_biomass(digester, hrt, olr, target_yield_m3):
+    """finds X value for ODE solver - used to calibrate for S14-S17"""
+    def objective(X_guess):
+        digester.x_baseline = X_guess 
+        result = digester.simulate_dynamic_reactor(hrt, olr)
+        ode_yield = result["final_yield"] / 1000.0
+        return abs(ode_yield - target_yield_m3)
+
+    res = minimize_scalar(objective, bounds=(0.001, 5.0), method='bounded')
+    return res.x
+
+
 def main():
 
     results_summary = []
     scenario_curves = {}
+
+    optimal_biomass_x = 1.0
 
     # main simulation Loop
     for scenario in scenarios:
@@ -111,15 +122,6 @@ def main():
             mixture_ratios=scenario["mixture_ratios"],
             profiles=scenario["profiles"]
         )
-        
-        config_dict = {
-            'DIGESTER_CALIBRATION': DIGESTER_CALIBRATION,
-            'DIGESTER_BASELINES': DIGESTER_BASELINES,
-            'BMP_CONSTANTS': BMP_CONSTANTS,
-            'RISK_THRESHOLDS': RISK_THRESHOLDS,
-            'STABILITY_WEIGHTS': STABILITY_WEIGHTS,
-            'DIGESTER_CONDITIONS': DIGESTER_CONDITIONS
-        }
         # instantiate Pretreatment
         pretreatment = Pretreatment(
             temp_pre=T_PRE,
@@ -129,18 +131,73 @@ def main():
             config=PRETREATMENT_CONFIG,
             weights=FPSI_WEIGHTS
         )
-        
+        config_dict = {
+            'DIGESTER_CALIBRATION': DIGESTER_CALIBRATION,
+            'DIGESTER_BASELINES': DIGESTER_BASELINES,
+            'BMP_CONSTANTS': BMP_CONSTANTS,
+            'RISK_THRESHOLDS': RISK_THRESHOLDS,
+            'STABILITY_WEIGHTS': STABILITY_WEIGHTS,
+            'DIGESTER_CONDITIONS': DIGESTER_CONDITIONS,
+            'MICROBIAL_KINETICS': MICROBIAL_KINETICS,
+            'X_baseline': optimal_biomass_x
+        }
+
+        # TEMPORARY KINETIC MODIFICATION (For S14-S17)
+        if "target_microbe" in scenario:
+            target = scenario["target_microbe"]
+            param = scenario["target_param"]
+            config_dict['MICROBIAL_KINETICS'][target][param] *= scenario["modifier"]
+
         # instantiate Digester
         digester = Digester(feedstock=feedstock, pretreatment=pretreatment, config=config_dict)
-        # calculate the Gompertz curve for all
+        # run appropriate curve model
         time_array = np.linspace(0, scenario["hrt"], num=scenario["hrt"] + 1)
-        treated_curve = digester.calculate_gompertz_curve(time_array, is_treated=True)
-
+                        
+        cod_vs_ratio = (
+            (feedstock.mixed_fractions["carb"] * 1.067) + # C6H12O6 + 6 02 -> 6 CO2 + 6 H20
+            (feedstock.mixed_fractions["protein"] * 1.415) + # C5H7O2N + 5 02 -> 5 CO2 + 2 H20 + NH3
+            (feedstock.mixed_fractions["lipid"] * 2.895) # C57H104O6 + 80 02 -> 57 CO2 + 52 H20
+        )
+        # cod_vs_ratio = 1.42
+        
+        current_olr_cod = current_olr * cod_vs_ratio
+        
+        if "target_microbe" in scenario:
+            # mechanistic ODE solver for S14-S17
+            dynamic_results = digester.simulate_dynamic_reactor(scenario["hrt"], current_olr_cod)
+            treated_curve = dynamic_results["methane_curve"]
+            digester.y_ch4_treated = dynamic_results["final_yield"] / 1000.0
+            # reset the kinetic dictionary to base values for the next loop iteration
+            config_dict['MICROBIAL_KINETICS'][target]['k_max'] /= scenario["modifier"]
+        else:
+            treated_curve = digester.calculate_gompertz_curve(time_array, is_treated=True)
+            
+            if scenario["id"] == "S3":
+                target_yield = digester.y_ch4_treated
+                print(f"[*] Calibrating ODE solver to S3 target yield: {target_yield:.3f} Nm3/d")
+                # Pass the COD-converted OLR to the optimizer
+                optimal_biomass_x = find_baseline_biomass(digester, scenario["hrt"], current_olr_cod, target_yield)
+                print(f"[+] Calibration complete. Optimized biomass (X): {optimal_biomass_x:.4f} kg COD/m3")
+        
         # store the curve to plot later
         scenario_curves[scenario["id"]] = {
             "time": time_array,
             "methane": treated_curve
         }
+
+        
+        
+        # instantiate Digester
+        # digester = Digester(feedstock=feedstock, pretreatment=pretreatment, config=config_dict)
+        # # calculate the Gompertz curve for all
+        # time_array = np.linspace(0, scenario["hrt"], num=scenario["hrt"] + 1)
+        # treated_curve = digester.calculate_gompertz_curve(time_array, is_treated=True)
+
+        # # store the curve to plot later
+        # scenario_curves[scenario["id"]] = {
+        #     "time": time_array,
+        #     "methane": treated_curve
+        # }
         # calculate risks and practical yields
         practical_data = digester.get_practical_yields(scenario["olr"], config_dict)
 
@@ -191,9 +248,10 @@ def main():
 
     # standard plots for S1-S9
     generate_all_plots(df_s1_to_s9, curves_s1_to_s9, output_dir="output")
-    
-    # OAT composition comparison plot
+    # OAT composition comparison plot for S10-13
     plot_composition_oat_comparison(df_results, output_dir="output")
+    # OAT microbial kinetic comparison plot (S3 vs S14-S17)
+    plot_microbial_oat_comparison(df_results, output_dir="output")
 
 if __name__ == "__main__":
     main()

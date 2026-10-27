@@ -182,7 +182,7 @@ MICROBIAL_KINETICS = { # S14-17 - reference: https://peerj.com/articles/16720.pd
     # S14: hydrolytic/fermentative bacterial activity (sugar degraders)
     "acidogenic": {
         "k_max": 30.0,       # k_m,su (1/d)
-        "K_S": 0.5,          # K_S,su (kg COD   / m3)
+        "K_S": 0.5,          # K_S,su (kg COD / m3)
         "Y": 0.10            # Y_su
     },
     # S15: acetogenic/syntrophic bacterial activity (propionate degraders)
@@ -190,9 +190,10 @@ MICROBIAL_KINETICS = { # S14-17 - reference: https://peerj.com/articles/16720.pd
         "k_max": 13.0,       # k_m,pro (1/d)
         "K_S": 0.10,         # K_S,pro (kg COD / m3)
         "Y": 0.04,           # Y_pro
-        "K_I_H2": 3.5e-6     # K_I,H2,pro (kg COD / m3)
+        "K_I_H2": 3.5e-6     # K_I ,H2,pro (kg COD / m3)
     },
     # S16: acetoclastic methanogenic archaea
+    # NOTE: pH_LL ~= 6, pH_UP = 7
     "acetoclastic": {
         "k_max": 8.0,        # k_m,ac (1/d)
         "K_S": 0.15,         # K_S,ac (kg COD / m3)
@@ -200,6 +201,7 @@ MICROBIAL_KINETICS = { # S14-17 - reference: https://peerj.com/articles/16720.pd
         "K_I_NH3": 0.0018    # unit: M (free ammonia inhibition limit)
     },
     # S17: hydrogenotrophic methanogenic archaea
+    # NOTE: pH_LL = 5, pH_UP = 6
     "hydrogenotrophic": {
         "k_max": 35.0,       # k_m,H2 (1/d)
         "K_S": 7e-6,         # K_S,H2 (kg COD / m3)
