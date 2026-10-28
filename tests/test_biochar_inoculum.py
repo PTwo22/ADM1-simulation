@@ -367,7 +367,7 @@ class BothTimeLegacyConventionTests(unittest.TestCase):
 
     def test_main_graph_layout_and_metric_precision(self):
         from pathlib import Path
-        expected={'biochar_inoculum_gompertz_curve.png','s21_s24_day10_legacy_nominal_comparison.png','s21_s24_day25_legacy_nominal_comparison.png'}
+        expected={'biochar_inoculum_gompertz_curve.png','s21_s24_day10_legacy_nominal_comparison.png','s21_s24_day15_methane_comparison.png','s21_s24_day25_legacy_nominal_comparison.png'}
         self.assertEqual({p.name for p in Path('output/s21_s24').glob('*.png')},expected)
         raw=pd.read_csv('output/s21_s24/biochar_inoculum_summary.csv').set_index('Scenario ID')
         shown=pd.read_csv('output/s21_s24/biochar_inoculum_summary_presentation.csv',dtype=str).set_index('Scenario ID')
@@ -423,6 +423,20 @@ class TeamScreeningTests(unittest.TestCase):
                 self.assertAlmostEqual(value,285.05286578859705,places=10)
             self.assertAlmostEqual(frame.loc[sid,'Team screening change vs S3 (%)'],(value/reference-1)*100,places=12)
         self.assertTrue((frame['Team screening change vs S3 (%)']==0).all())
+
+
+class Day15ComparisonTests(unittest.TestCase):
+    def test_saved_day15_matches_independent_simulation_and_percentages(self):
+        from utils.biochar_visualisations import day15_nominal_comparison
+        frame=day15_nominal_comparison().set_index('Scenario ID')
+        reference=frame.loc['S3','Day-15 legacy metric']
+        for sid in ('S3','S21','S22','S23','S24'):
+            case=next(s for s in main.scenarios if s['id']==sid)
+            _,_,digester,config=main.run_scenario(case)
+            _,curve=evaluate_batch(digester,case,config,main.REACTOR_VOL)
+            expected=1000*curve['adjusted'][15]/case['olr']
+            self.assertAlmostEqual(frame.loc[sid,'Day-15 legacy metric'],expected,places=11)
+            self.assertAlmostEqual(frame.loc[sid,'Day-15 change vs S3 (%)'],(expected-reference)/reference*100,places=11)
 
 
 if __name__ == '__main__':

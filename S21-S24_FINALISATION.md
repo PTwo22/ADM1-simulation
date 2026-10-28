@@ -4,7 +4,7 @@ Updated 28 October 2026 | Branch: `biochar-inoculum`
 
 ## Main results: Day-10 and Day-25 methane production
 
-The following are **finite-time legacy nominal-loading metrics**, not the full-potential screening quantity above. They use each scenario's own stability-adjusted cumulative methane at the stated day divided by the same numerical nominal-loading denominator 2.5. Raw values remain full precision.
+The following are **finite-time legacy nominal-loading metrics**, not the full-potential screening quantity described below. They use each scenario's own stability-adjusted cumulative methane at the stated day divided by the same numerical nominal-loading denominator 2.5. Raw values remain full precision.
 
 | Scenario | Day-10 legacy metric | Day-10 change vs S3 | Day-25 legacy metric | Day-25 change vs S3 |
 | --- | --- | --- | --- | --- |
@@ -56,7 +56,21 @@ Nominal OLR has units kgVS/m3/day and is not substrate charge mass. Dividing a b
 
 The original feed charge is 10 kg wet * 0.25 TS * 0.90 VS/TS = 2.25 kg substrate VS. The nominal scenario OLR 2.5 differs from the actual legacy feed loading 2.25 kg VS/m3/day. This existing mismatch is preserved and disclosed, not silently corrected in one scenario group.
 
-## Main presentation: exactly three figures
+## Day-15 methane production comparison
+
+Day 15 uses the actual saved `Adjusted cumulative CH4 (Nm3)` rows at Day = 15, without interpolation or new simulation assumptions. The same inherited convention applies: `1000*C_adjusted(15)/2.5`. Percentages use unrounded Day-15 values and the Day-15 S3 reference. These are finite-time legacy comparison metrics, not experimentally validated specific methane yields. Existing Day-10/Day-25 results are unchanged.
+
+| Scenario | Day-15 legacy comparison metric | Day-15 change vs S3 (%) |
+| --- | --- | --- |
+| S3 | 271.548 | +0.000% |
+| S21 | 280.041 | +3.128% |
+| S22 | 281.461 | +3.650% |
+| S23 | 282.012 | +3.854% |
+| S24 | 283.238 | +4.305% |
+
+![Day-15 Methane Production - S3 vs S21-S24](output/s21_s24/s21_s24_day15_methane_comparison.png)
+
+## Main presentation: Day-10, Day-15, Day-25 and cumulative figures
 
 1. **Day-10 Methane Production - S3 vs S21-S24**: each scenario's stability-adjusted cumulative methane at Day 10, using the inherited denominator 2.5.
 2. **Day-25 Methane Production - S3 vs S21-S24**: the same finite-time convention at Day 25. Small differences are preserved without truncating the vertical axis.
@@ -70,7 +84,7 @@ The original feed charge is 10 kg wet * 0.25 TS * 0.90 VS/TS = 2.25 kg substrate
 
 The cumulative curves use distinct colours: S3 blue, S21 green, S22 pink, S23 purple and S24 orange, with distinct line styles retained. Bar-chart colours remain grouped by scenario type.
 
-The bar charts show finite-time legacy comparison metrics, not experimentally validated specific methane yields. S3 is blue, S21-S23 green and S24 orange. Values and same-day percentage changes are shown to three decimals; each dashed reference line is that time point's S3 value. Existing supporting copies of the previous Day-10 and Day-25 figures are retained.
+The bar charts show finite-time legacy comparison metrics, not experimentally validated specific methane yields. S3 is blue, S21-S23 green and S24 orange. Values and same-day percentage changes are shown to three decimals; each dashed reference line is that time point's S3 value. Supporting numerical CSVs are retained; redundant supporting images are omitted.
 
 ## Supporting full-potential screening reference
 
@@ -86,7 +100,7 @@ Direct team comparisons use the original `Digester.get_practical_yields()` calcu
 
 Graph values use the team's one-decimal presentation (285.1); the underlying reference is 285.05286578859705. Each scenario's screening value is independently calculated using its Digester. Identical results are expected: the current additive/inoculum implementation changes apparent conversion rate, while potential and stability remain fixed. This flat comparison does not demonstrate methane enhancement and is not evidence that the kinetic responses are ignored.
 
-[Supporting full-potential screening graph](output/s21_s24/supporting/s21_s24_team_screening_comparison.png)
+The original full-potential screening values remain in the CSVs and table; the redundant flat screening image is omitted.
 
 ## Retained actual-mass batch results: supporting analysis
 
@@ -106,7 +120,7 @@ Y_batch(t) = 1000 * C_adjusted(t) / 2.25 kg substrate VS
 
 These are different numerical quantities from the primary legacy-convention metrics. Their relative percentage changes are equal because the common denominator changes by the same factor for every scenario. Neither actual-mass batch reference is replaced with 285.053.
 
-The relationship is `Y_legacy(t)=Y_batch(t)*2.25/2.5`, derived from the denominators and existing cumulative volume, not an arbitrary fitted multiplier. The actual-mass figures are preserved as [Day 10 supporting graph](output/s21_s24/supporting/s21_s24_day10_batch_yield_comparison.png) and [Day 25 supporting graph](output/s21_s24/supporting/s21_s24_day25_batch_yield_comparison.png). They are reference-only older presentations; full-precision data remain authoritative.
+The relationship is `Y_legacy(t)=Y_batch(t)*2.25/2.5`, derived from the denominators and existing cumulative volume, not an arbitrary fitted multiplier. Actual-mass results remain in the table and CSVs. Older supporting graph copies have been removed; full-precision data remain authoritative.
 
 ## Scientific interpretation
 
@@ -248,7 +262,7 @@ python -B -m unittest discover -s tests -p test_biochar_inoculum.py -q
 
 Verification: `python -m pytest tests/test_biochar_inoculum.py -q -p no:cacheprovider` completed with **27 passed**. `git diff --check` also passed.
 
-The exporter maintains exactly three main figures: Day-10 comparison, Day-25 comparison and cumulative kinetics. The full-potential screening graph and S-ratio CSV remain supporting analyses. Derived metric additions are reporting calculations only; original simulation functions, coefficients, nominal loading, potential and stability remain untouched.
+The exporter maintains four main figures: Day-10, Day-15 and Day-25 comparisons, plus cumulative kinetics. The full-potential screening data and S-ratio CSV remain supporting analyses; supporting PNGs are not generated automatically. Derived metric additions are reporting calculations only; original simulation functions, coefficients, nominal loading, potential and stability remain untouched.
 
 ## Team-reporting verification
 

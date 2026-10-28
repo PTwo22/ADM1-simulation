@@ -41,7 +41,6 @@ def export_biochar_analysis(results, curves, scenarios, run_scenario, volume):
     selected = selected[leading + [c for c in selected.columns if c not in leading]]
     selected.to_csv(out / 'biochar_inoculum_summary.csv', index=False)
     export_presentation_summary(selected, out)
-    plot_combined_methane_yield(out)
     daily_rows = []
     for sid, data in curves.items():
         mass_vs = selected.loc[selected['Scenario ID'] == sid, 'Substrate charge VS (kg)'].iloc[0]
@@ -55,6 +54,7 @@ def export_biochar_analysis(results, curves, scenarios, run_scenario, volume):
                                'Daily CH4 (Nm3/day)': 0.0 if day == 0 else data['daily'][int(day)-1]})
     pd.DataFrame(daily_rows).to_csv(supporting / 'biochar_inoculum_timeseries.csv', index=False)
 
+    plot_combined_methane_yield(out)
     plot_cumulative_methane_comparison(out)
 
     base = next(s for s in scenarios if s['id'] == 'S3')
@@ -73,14 +73,14 @@ def export_biochar_analysis(results, curves, scenarios, run_scenario, volume):
 
     ratios = sensitivity('si_ratio', SI_LEVELS)
     ratios['Role'] = ['Official S24' if r == OFFICIAL_S24_SI else 'S3 reference' if r == 1 else 'Additional sensitivity' for r in SI_LEVELS]
-    plot_inoculum_ratio_sensitivity(ratios, out)
+    # Supporting results are retained as CSVs; do not generate sensitivity PNGs.
     from utils.biochar_verification import export_verification
     export_verification(selected, scenarios, run_scenario, volume, out)
 
 
 def plot_combined_methane_yield(output_dir='output/s21_s24'):
-    """Finite-time comparisons are primary; preserve full-potential screening as support."""
-    return (plot_team_screening_comparison(output_dir),) + tuple(plot_nominal_time_comparison(output_dir,day) for day in (10,25))
+    """Generate the three main finite-time bar charts; supporting outputs remain CSV-only."""
+    return tuple(plot_nominal_time_comparison(output_dir,day) for day in (10,15,25))
 
 
 def team_screening_comparison(results):
@@ -140,14 +140,34 @@ def add_day25_nominal_comparison(results):
     return frame
 
 
+def day15_nominal_comparison(output_dir='output/s21_s24'):
+    """Read actual saved Day15 outputs, without interpolation or CSV mutation."""
+    out=Path(output_dir)
+    frame=pd.read_csv(out/'biochar_inoculum_summary.csv')
+    times=pd.read_csv(out/'supporting'/'biochar_inoculum_timeseries.csv')
+    selected=times.loc[(times['Day']==15)&times['Scenario ID'].isin(frame['Scenario ID'])]
+    if selected['Scenario ID'].duplicated().any() or set(selected['Scenario ID'])!=set(frame['Scenario ID']):
+        raise ValueError('Expected exactly one saved Day15 output per scenario')
+    volume=frame['Scenario ID'].map(selected.set_index('Scenario ID')['Adjusted cumulative CH4 (Nm3)'])
+    loading=frame['Screening nominal loading (kgVS/m3/day)']
+    if not np.isfinite(volume).all() or (volume<0).any() or not np.isfinite(loading).all() or (loading<=0).any() or not (loading==loading.iloc[0]).all():
+        raise ValueError('Invalid saved Day15 volumes or nominal loading')
+    frame['Day-15 legacy metric']=1000*volume/loading
+    reference=frame.loc[frame['Scenario ID']=='S3','Day-15 legacy metric']
+    if len(reference)!=1 or reference.iloc[0]<=0:
+        raise ValueError('Expected one positive S3 reference')
+    frame['Day-15 change vs S3 (%)']=(frame['Day-15 legacy metric']/reference.iloc[0]-1)*100
+    return frame
+
+
 def plot_nominal_time_comparison(output_dir='output/s21_s24',day=25):
     """Finite-time reporting index, not actual-mass batch yield or BMP."""
     from matplotlib.ticker import FormatStrFormatter
-    if day not in (10,25):raise ValueError('Expected Day10 or Day25')
+    if day not in (10,15,25):raise ValueError('Expected Day10, Day15 or Day25')
     out=Path(output_dir)
-    frame=add_day25_nominal_comparison(pd.read_csv(out/'biochar_inoculum_summary.csv'))
+    frame=day15_nominal_comparison(out) if day==15 else add_day25_nominal_comparison(pd.read_csv(out/'biochar_inoculum_summary.csv'))
     ids=['S3','S21','S22','S23','S24'];frame=frame.set_index('Scenario ID').loc[ids]
-    metric,change=(NOMINAL10,NOMINAL10_CHANGE) if day==10 else (NOMINAL25,NOMINAL25_CHANGE)
+    metric,change=('Day-15 legacy metric','Day-15 change vs S3 (%)') if day==15 else (NOMINAL10,NOMINAL10_CHANGE) if day==10 else (NOMINAL25,NOMINAL25_CHANGE)
     values=frame[metric].to_numpy(dtype=float);percentages=frame[change].to_numpy(dtype=float)
     fig,ax=plt.subplots(figsize=(12,7))
     ax.bar(np.arange(5),values,color=[SCENARIO_COLOURS[sid] for sid in ids],edgecolor='black',width=.6)
@@ -165,7 +185,7 @@ def plot_nominal_time_comparison(output_dir='output/s21_s24',day=25):
     fig.text(.5,.02,'S3 blue | S21-S23 green | S24 orange. Exploratory, experimentally uncalibrated.',ha='center',fontsize=9)
     fig.subplots_adjust(left=.11,right=.97,bottom=.23,top=.85)
     support=out/'supporting';support.mkdir(exist_ok=True)
-    path=out/f's21_s24_day{day}_legacy_nominal_comparison.png';fig.savefig(path,dpi=300);plt.close(fig)
+    path=out/('s21_s24_day15_methane_comparison.png' if day==15 else f's21_s24_day{day}_legacy_nominal_comparison.png');fig.savefig(path,dpi=300);plt.close(fig)
     return path
 
 
