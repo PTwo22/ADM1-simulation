@@ -82,7 +82,9 @@ def kinetic_factors(biochar_g_L, si_ratio, parameters=None, options=None):
 
 def finite_charge_curve(potential, rate_proxy, lag, time):
     """Origin-normalised Gompertz curve; rate_proxy=Rmax*e/P, not ADM1 k_meth.
-    Algebraically equivalent to the legacy curve at reference settings.
+    Uses the legacy Gompertz form followed by a separate origin normalisation.
+    The exported P*k/e is the underlying curve parameter, not the exact
+    maximum derivative of this normalised, stability-adjusted curve.
     """
     for name, value in [('potential', potential), ('rate', rate_proxy), ('lag', lag)]:
         _finite(value, name)
@@ -120,6 +122,12 @@ def evaluate_batch(digester, scenario, config, reactor_volume_m3=1.0, parameters
     _finite(mass_vs, 'substrate VS', True)
     theoretical = mass_vs * digester.feedstock.calculate_theoretical_bmp(digester.bmp_constants)
     row = {
+        'Project screening yield (L/kgVS)': risks['Specific_Yield_L_kgVS'],
+        'Batch specific CH4 at 10d (L/kgVS)': cumulative[10] * 1000 / mass_vs,
+        'Batch cumulative CH4 at 10d (Nm3)': cumulative[10],
+        'Adjusted batch specific CH4 at 10d (L/kgVS)': adjusted[10] * 1000 / mass_vs,
+        'Adjusted batch cumulative CH4 at 10d (Nm3)': adjusted[10],
+        'Screening nominal loading (kgVS/m3/day)': scenario['olr'],
         'Biochar (g/L)': dose, 'S:I (gVS/gVS)': ratio,
         'Biochar material': BIOCHAR_MATERIAL,
         'Model status': 'Exploratory empirical Gompertz sensitivity; uncalibrated; not ADM1 k_meth',
@@ -134,6 +142,8 @@ def evaluate_batch(digester, scenario, config, reactor_volume_m3=1.0, parameters
         'Biochar mass (kg)': dose * reactor_volume_m3,
         'Biochar kinetic factor': biochar, 'Inoculum capacity factor': capacity,
         'Apparent conversion rate (1/day)': rate,
+        # Compatibility column: underlying unnormalised Gompertz parameter.
+        # Not a measured daily rate or the adjusted curve's exact peak derivative.
         'Empirical Gompertz Rmax (Nm3/day)': potential * rate / np.e,
         'Batch lag (days)': lag,
         'Theoretical charge BMP (Nm3)': theoretical,
