@@ -1,0 +1,31 @@
+Parameter,Value,Source/range status,Inhibition enabled,Probe biochar (g/L),Probe S:I,Adjusted batch specific CH4 at 25d (L/kgVS),Change from probe default (%),Day10 adjusted yield (L/kgVS),Batch lag (days)
+Biochar concentration,0.0,Formula p25 / Ovi study design,False,0.0,1.0,316.23021541874493,0.0,241.70154550096615,3.2791071281126793
+Biochar concentration,5.0,Formula p25 / Ovi study design,False,5.0,1.0,316.648674539718,0.13232736802806233,272.1283020181441,3.2791071281126793
+Biochar concentration,10.0,Formula p25 / Ovi study design,False,10.0,1.0,316.68419678252263,0.14356040050649277,279.45248976677294,3.2791071281126793
+Biochar concentration,15.0,Formula p25 / Ovi study design,False,15.0,1.0,316.6952064286203,0.1470419293297498,282.67952593244206,3.2791071281126793
+S:I,0.33,Formula p25 / Kawai study design,False,0.0,0.33,316.71384949147546,0.15293733778416474,291.06726003479383,3.2791071281126793
+S:I,0.5,Formula p25 / Kawai study design,False,0.0,0.5,316.68419678252263,0.14356040050649277,279.4524897667729,3.2791071281126793
+S:I,1.0,Formula p25 / Kawai study design,False,0.0,1.0,316.23021541874493,0.0,241.70154550096615,3.2791071281126793
+S:I,2.0,Formula p25 / Kawai study design,False,0.0,2.0,310.8057674564816,-1.7153477744308532,176.29246740727677,3.2791071281126793
+S:I,4.0,Formula p25 / Kawai study design,False,0.0,4.0,275.4567802875148,-12.893592434625155,104.61454744020644,3.2791071281126793
+half_saturation_g_L,4.0,Unverified legacy coefficient +/-20% diagnostic only,False,10.0,1.0,316.69090311110375,0.0021176707424075403,281.3299238148602,3.2791071281126793
+half_saturation_g_L,5.0,Unverified legacy coefficient +/-20% diagnostic only,False,10.0,1.0,316.68419678252263,0.0,279.45248976677294,3.2791071281126793
+half_saturation_g_L,6.0,Unverified legacy coefficient +/-20% diagnostic only,False,10.0,1.0,316.67726775638675,-0.0021879923931433787,277.733993705084,3.2791071281126793
+benefit_amplitude,0.4,Unverified legacy coefficient +/-20% diagnostic only,False,10.0,1.0,316.65764518010974,-0.008384252413806692,273.69159624158476,3.2791071281126793
+benefit_amplitude,0.5,Unverified legacy coefficient +/-20% diagnostic only,False,10.0,1.0,316.68419678252263,0.0,279.45248976677294,3.2791071281126793
+benefit_amplitude,0.6,Unverified legacy coefficient +/-20% diagnostic only,False,10.0,1.0,316.70034470256303,0.0050990608955192585,284.48795945528155,3.2791071281126793
+response_exponent,0.8,Unverified shape +/-20% diagnostic only,False,10.0,1.0,316.6790618758569,-0.001621459712197737,278.160658156163,3.2791071281126793
+response_exponent,1.0,Unverified shape +/-20% diagnostic only,False,10.0,1.0,316.68419678252263,0.0,279.45248976677294,3.2791071281126793
+response_exponent,1.2,Unverified shape +/-20% diagnostic only,False,10.0,1.0,316.68856820598995,0.0013803731009343068,280.64831637742446,3.2791071281126793
+inhibition_scale_g_L,24.0,Unverified inhibition +/-20%; conditional inhibition-on diagnostic,True,10.0,1.0,316.5459442635528,-0.02149117306451398,259.98481105490555,3.2791071281126793
+inhibition_scale_g_L,30.0,Unverified inhibition +/-20%; conditional inhibition-on diagnostic,True,10.0,1.0,316.6139883237299,0.0,267.12169572552847,3.2791071281126793
+inhibition_scale_g_L,36.0,Unverified inhibition +/-20%; conditional inhibition-on diagnostic,True,10.0,1.0,316.641377833613,0.008650757987060942,270.9533360915995,3.2791071281126793
+inhibition_exponent,1.6,Unverified inhibition shape +/-20%; conditional diagnostic,True,10.0,1.0,316.54747324466786,-0.02100825658848393,260.12061540929034,3.2791071281126793
+inhibition_exponent,2.0,Unverified inhibition shape +/-20%; conditional diagnostic,True,10.0,1.0,316.6139883237299,0.0,267.12169572552847,3.2791071281126793
+inhibition_exponent,2.4,Unverified inhibition shape +/-20%; conditional diagnostic,True,10.0,1.0,316.64530940543403,0.009892513552522963,271.5766223016306,3.2791071281126793
+empirical_rate_scale,0.8,Uncalibrated Gompertz rate +/-20%; NOT methanogenic k_meth sensitivity,False,10.0,1.0,316.4242025530967,-0.08209889601927811,251.21073755208812,3.2791071281126793
+empirical_rate_scale,1.0,Uncalibrated Gompertz rate +/-20%; NOT methanogenic k_meth sensitivity,False,10.0,1.0,316.68419678252263,0.0,279.45248976677294,3.2791071281126793
+empirical_rate_scale,1.2,Uncalibrated Gompertz rate +/-20%; NOT methanogenic k_meth sensitivity,False,10.0,1.0,316.719769657004,0.011232917475134663,296.0072567165595,3.2791071281126793
+inoculum_half_capacity,0.8,Unverified capacity +/-20% at S:I2 diagnostic only,False,0.0,2.0,311.8308317188278,0.32980863602853905,182.40348984555243,3.2791071281126793
+inoculum_half_capacity,1.0,Unverified capacity +/-20% at S:I2 diagnostic only,False,0.0,2.0,310.8057674564816,0.0,176.29246740727677,3.2791071281126793
+inoculum_half_capacity,1.2,Unverified capacity +/-20% at S:I2 diagnostic only,False,0.0,2.0,309.88050830736324,-0.29769690462642107,171.50595631983938,3.2791071281126793
