@@ -176,3 +176,5 @@ OK
 - Stability scoring is outside the current model scope.
 - Algae, archaea and hybrid-treatment scenarios require compatible parameters.
 - Economic, recovery and user-interface calculations are outside this model.
+
+S21-S24 scientific review: [Parameter verification and validation limits](S21-S24_FINALISATION.md). Official S24 uses S:I = 0.33; inhibition is optional and disabled by default.

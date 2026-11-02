@@ -6,7 +6,7 @@ import numpy as np
 from data.config import *
 from data.chemical_config import CHEMICAL_PRETREATMENT_CONFIG
 from AD.feedstock import Feedstock
-from pretreatment.pretreatment import Pretreatment
+from pretreatment.screening_reference import ScreeningReferencePretreatment as Pretreatment
 from pretreatment.chemical_pretreatment import ChemicalPretreatment
 from AD.digester import Digester
 from AD.chemical_digester import ChemicalDigester
@@ -70,13 +70,33 @@ REACTOR_VOL = 1.0    # assumed: 1 cubic meter baseline reactor volume -
 T_PRE = 30.0         # published sim variable
 PH_PRE = 5.5         # published sim variable
 
-def main():
+from data.biochar_config import extend_scenarios
+from AD.biochar_inoculum import evaluate_batch
+
+scenarios.extend(extend_scenarios(scenarios))
+
+
+def run_scenario(scenario):
+    """Shared construction for legacy scenarios and OAT sensitivity runs."""
+    m_wet = 10.0 if scenario['olr'] <= 2.5 else scenario['olr'] * REACTOR_VOL / (F_TS * F_VS_TS)
+    feedstock = Feedstock(m_wet, F_TS, F_VS_TS, scenario['mixture_ratios'], scenario['profiles'])
+    doses = {i: scenario['enzyme_dose'] for i in ('carb', 'protein', 'lipid', 'inert')}
+    pretreatment = Pretreatment(T_PRE, PH_PRE, scenario['t_pre'], doses, PRETREATMENT_CONFIG, FPSI_WEIGHTS)
+    config = {k: globals()[k] for k in ('DIGESTER_CALIBRATION', 'DIGESTER_BASELINES', 'BMP_CONSTANTS',
+                                     'RISK_THRESHOLDS', 'STABILITY_WEIGHTS', 'DIGESTER_CONDITIONS')}
+    return feedstock, pretreatment, Digester(feedstock, pretreatment, config), config
+
+
+def main(scenario_ids=None):
 
     results_summary = []
     scenario_curves = {}
+    batch_curves = {}
 
     # main simulation Loop
     for scenario in scenarios:
+        if scenario_ids is not None and scenario["id"] not in scenario_ids:
+            continue
         
         # back-calculate Feedstock Wet Mass based on daily OLR. 
         # m_vs_daily = scenario["olr"] * REACTOR_VOL
@@ -151,6 +171,10 @@ def main():
         # instantiate Digester
         digester_class = ChemicalDigester if isinstance(pretreatment, ChemicalPretreatment) else Digester
         digester = digester_class(feedstock=feedstock, pretreatment=pretreatment, config=config_dict)
+        if scenario_ids is not None and scenario["id"] not in scenario_ids:
+            continue
+        if scenario["id"] in {"S3", "S21", "S22", "S23", "S24"}:
+            feedstock, pretreatment, digester, config_dict = run_scenario(scenario)
         # calculate the Gompertz curve for all
         time_array = np.linspace(0, scenario["hrt"], num=scenario["hrt"] + 1)
         treated_curve = digester.calculate_gompertz_curve(time_array, is_treated=True)
@@ -167,7 +191,13 @@ def main():
         mixture_str = ", ".join([f"{k}: {v*100}%" for k, v in scenario["mixture_ratios"].items()])
         
         is_chemical = isinstance(pretreatment, ChemicalPretreatment)
+        
+        batch_row = {}
+        if scenario['id'] in ('S3', 'S21', 'S22', 'S23', 'S24'):
+            batch_row, batch_curves[scenario['id']] = evaluate_batch(digester, scenario, config_dict, REACTOR_VOL)
+
         results_summary.append({
+            **batch_row,
             "Scenario ID": scenario["id"],
             "Scenario": scenario["description"],
             "Feedstock Mixture": mixture_str,
@@ -191,6 +221,9 @@ def main():
     # convert to Pandas DataFrame
     df_results = pd.DataFrame(results_summary)
 
+    from utils.biochar_visualisations import export_biochar_analysis
+    export_biochar_analysis(df_results, batch_curves, scenarios, run_scenario, REACTOR_VOL)
+
     # print to console
     print("=== SIMULATION RESULTS ===")
     print(df_results.to_string(index=False))
@@ -201,7 +234,12 @@ def main():
 
     # export to CSV
     csv_file_path = os.path.join("output", "scenario_summary.csv")
-    df_results.to_csv(csv_file_path, index=False)
+    if scenario_ids is not None and os.path.exists(csv_file_path):
+        previous = pd.read_csv(csv_file_path)
+        previous = previous[~previous['Scenario ID'].isin(df_results['Scenario ID'])]
+        pd.concat([previous, df_results], ignore_index=True).to_csv(csv_file_path, index=False)
+    else:
+        df_results.to_csv(csv_file_path, index=False)
     print(f"\n[+] Results successfully saved to {csv_file_path}")
 
     # S1-S9
@@ -210,10 +248,16 @@ def main():
     curves_s1_to_s9 = {k: v for k, v in scenario_curves.items() if k in s1_to_s9_ids}
 
     # standard plots for S1-S9
-    generate_all_plots(df_s1_to_s9, curves_s1_to_s9, output_dir="output")
+    if scenario_ids is None:
+        generate_all_plots(df_s1_to_s9, curves_s1_to_s9, output_dir="output")
     
     # OAT composition comparison plot
-    plot_composition_oat_comparison(df_results, output_dir="output")
+    if scenario_ids is None:
+        plot_composition_oat_comparison(df_results, output_dir="output")
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--biochar-only', action='store_true', help='Run S3 and S21-S24; preserve legacy plots')
+    args = parser.parse_args()
+    main({'S3', 'S21', 'S22', 'S23', 'S24'} if args.biochar_only else None)

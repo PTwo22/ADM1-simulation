@@ -106,7 +106,7 @@ class Feedstock:
     def calculate_inoculum_mass(self, s_i_ratio: float) -> float:
         """calculates required inoculum VS mass based on the substrate VS"""
         # formula 89: S/I = M_{VS,substrate} / M_{VS,inoculum} - to be used for S24
-        if s_i_ratio <= 0:
+        if not math.isfinite(s_i_ratio) or s_i_ratio <= 0:
             raise ValueError("S/I ratio must be greater than zero.")
         
         # rearranged formula 89: M_{VS,inoculum} = M_{VS,substrate} / (S/I)
