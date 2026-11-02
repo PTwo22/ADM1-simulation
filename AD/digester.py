@@ -287,7 +287,7 @@ class Digester:
         # * DOCUMENTATION FOR ODE: https://jdbburg.com/classes/Sp24Phy5300-JB/notebooks/Reference/ODEs_with_solve_ivp.html
 
         # integration timeframe
-        sim_days = hrt * 10 # arbitrary value to get ODE running
+        sim_days = hrt * 4 # arbitrary value to get ODE running
         t_span = (0, sim_days)
         t_eval = np.linspace(0, sim_days, int(sim_days) + 1)
         

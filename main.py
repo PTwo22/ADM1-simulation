@@ -9,7 +9,7 @@ from AD.feedstock import Feedstock
 from pretreatment.pretreatment import Pretreatment
 from AD.digester import Digester
 
-from utils.visualisations import generate_all_plots, plot_composition_oat_comparison, plot_microbial_oat_comparison
+from utils.visualisations import generate_all_plots, plot_composition_oat_comparison, plot_microbial_oat_comparison, plot_composition_gompertz_curves, plot_microbial_ode_curves
 
 # create an output directory for CSVs and plots if it doesn't exist
 os.makedirs("output", exist_ok=True)
@@ -83,6 +83,7 @@ def main():
         # m_wet_daily = m_vs_daily / (F_TS * F_VS_TS)
 
         m_wet_daily = 10.0
+        # m_wet_daily = 400.0
         m_vs_daily = m_wet_daily * F_TS * F_VS_TS
 
         # calculate the true OLR based on the fixed wet mass
@@ -163,12 +164,10 @@ def main():
         current_olr_cod = current_olr * cod_vs_ratio
         
         if "target_microbe" in scenario:
-            # mechanistic ODE solver for S14-S17
             dynamic_results = digester.simulate_dynamic_reactor(scenario["hrt"], current_olr_cod)
-            treated_curve = dynamic_results["methane_curve"]
+            # Divide the entire cumulative curve array by 1000 to convert Liters to Nm3
+            treated_curve = dynamic_results["methane_curve"] / 1000.0
             digester.y_ch4_treated = dynamic_results["final_yield"] / 1000.0
-            # reset the kinetic dictionary to base values for the next loop iteration
-            config_dict['MICROBIAL_KINETICS'][target]['k_max'] /= scenario["modifier"]
         else:
             treated_curve = digester.calculate_gompertz_curve(time_array, is_treated=True)
             
@@ -252,6 +251,9 @@ def main():
     plot_composition_oat_comparison(df_results, output_dir="output")
     # OAT microbial kinetic comparison plot (S3 vs S14-S17)
     plot_microbial_oat_comparison(df_results, output_dir="output")
+    plot_composition_gompertz_curves(scenario_curves, output_dir="output")
+    plot_microbial_ode_curves(scenario_curves, output_dir="output")
+    
 
 if __name__ == "__main__":
     main()
