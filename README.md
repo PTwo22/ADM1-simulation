@@ -22,11 +22,11 @@ This README contains setup and handover instructions, the file map, software che
 
 ## Status and scope
 
-This handover contains the local pretreatment-based simulation with the team's S10–S17 work, Vanpraseth Tuy's S18–S20 NaOH implementation, and the S21–S24 biochar/inoculum work integrated from teammate branch `biochar-inoculum` (tip `1add31c`). The starting pretreatment commit is `6aa1dc6`; the NaOH source commit is `fae8ad3`.
-
-The combined implementation is a local working snapshot. It has not been committed or pushed as part of this handover, and the GitHub PR has not been merged. Do not assume cloning GitHub reproduces this snapshot.
-
-Software integration is complete for the stated scope. Predictions remain subject to the limitations below; this is not a claim of experimental validation or readiness for plant operation.
+This handover combines the pretreatment-based simulation and the following team contributions:
+- ROTHPITOU POEUNG: Scenarios S10–S17.
+- Vanpraseth Tuy: Scenarios S18–S20 — NaOH pretreatment.
+- BHAVANA PRETY YOGARATNARAJAH MOHAN: Scenarios S21–S24 — biochar and inoculum.
+Software integration is complete for the stated scope. The results are simulation predictions and remain subject to the limitations described below. They have not been experimentally validated and do not establish readiness for plant operation.
 
 ## Start here
 
